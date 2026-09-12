@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "roles": {
+    "engineering": [{ "provider": "codex", "model": "YOUR_VERIFIED_MODEL_ID", "effort": "default", "family": "openai" }],
+    "design": [{ "provider": "claude", "model": "YOUR_VERIFIED_MODEL_ID", "effort": "default", "family": "anthropic" }],
+    "evidence": [{ "provider": "gemini", "model": "YOUR_VERIFIED_MODEL_ID", "effort": "default", "family": "google" }],
+    "red-team": [{ "provider": "claude", "model": "YOUR_VERIFIED_MODEL_ID", "effort": "default", "family": "anthropic" }]
+  },
+  "toolChecks": {
+    "engineering": ["Run the project's existing focused tests before asking a reviewer."],
+    "design": ["Capture rendered screenshots and test keyboard access before visual review."],
+    "evidence": ["Extract relevant text with local tools; retain source locations and uncertainty."],
+    "red-team": ["Check known requirements deterministically; ask the reviewer about remaining risk."]
+  }
+}

@@ -1,0 +1,42 @@
+[
+  {
+    "attemptId": "fixture-01",
+    "taskId": "illustrative-review",
+    "configurationId": "fictional-reviewer",
+    "date": "2026-01-01T00:00:00Z",
+    "packetHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "requestedModel": "fictional-model",
+    "reportedModel": null,
+    "effort": "default",
+    "timeoutMs": 180000,
+    "elapsedMs": 1000,
+    "delivery": "completed",
+    "mode": "unassisted",
+    "parentAttemptId": null,
+    "score": 80,
+    "verification": "passed",
+    "failureAttribution": "none",
+    "usage": null,
+    "notes": "Synthetic arithmetic fixture. No model was tested."
+  },
+  {
+    "attemptId": "fixture-02",
+    "taskId": "illustrative-review",
+    "configurationId": "fictional-reviewer",
+    "date": "2026-01-01T00:01:00Z",
+    "packetHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "requestedModel": "fictional-model",
+    "reportedModel": null,
+    "effort": "default",
+    "timeoutMs": 180000,
+    "elapsedMs": 180000,
+    "delivery": "failed",
+    "mode": "unassisted",
+    "parentAttemptId": null,
+    "score": null,
+    "verification": "not-run",
+    "failureAttribution": "unknown",
+    "usage": null,
+    "notes": "Synthetic timeout fixture. Failure attribution is unresolved."
+  }
+]

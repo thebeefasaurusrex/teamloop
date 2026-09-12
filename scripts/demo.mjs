@@ -1,0 +1,16 @@
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {prepare,run} from '../src/team-loop.mjs';
+import {loadConfig} from '../src/config.mjs';
+const repo=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const config=await loadConfig(path.join(repo,'config/demo.json'));
+config.stateRoot=await fs.mkdtemp(path.join(os.tmpdir(),'teamloop-demo-'));
+const spec=JSON.parse(await fs.readFile(path.join(repo,'examples/task.json'),'utf8'));
+spec.root=path.join(repo,'examples');
+const packet=await prepare(spec,config);
+const record=await run(packet,'mock','fixture',config);
+if(record.status!=='completed') throw Error(record.error);
+const review=JSON.parse(await fs.readFile(path.join(config.stateRoot,'runs',record.runId,'review.json'),'utf8'));
+console.log(JSON.stringify({notice:'NO MODEL CALLED. Runner delivery passed; fixture verdict is blocked because no actual review occurred.',packet,record,review,retainedDisposableDirectory:config.stateRoot},null,2));

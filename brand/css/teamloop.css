@@ -1,0 +1,45 @@
+@font-face {
+  font-family: 'Anta'; font-style: normal; font-weight: 400;
+  font-display: swap; src: url('../fonts/Anta-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Sora'; font-style: normal; font-weight: 100 800;
+  font-display: swap; src: url('../fonts/Sora-Variable.ttf') format('truetype');
+}
+:root {
+  --tl-blue: #315BFF;
+  --tl-green: #43F052;
+  --tl-navy: #0C1220;
+  --tl-paper: #F5F7FB;
+  --tl-white: #FFFFFF;
+  --tl-display: 'Anta', sans-serif;
+  --tl-body: 'Sora', system-ui, sans-serif;
+}
+.tl-wordmark {
+  font: 400 48px/1.25 var(--tl-display);
+  font-synthesis: none;
+  letter-spacing: 0;
+  white-space: nowrap;
+  color: var(--tl-green);
+}
+.tl-wordmark--light {
+  -webkit-text-stroke: 0.045em var(--tl-navy);
+  paint-order: stroke fill;
+  text-shadow: 0.045em 0.05em 0 var(--tl-navy);
+}
+.tl-wordmark--dark { -webkit-text-stroke: 0; text-shadow: none; }
+.tl-wordmark--backed {
+  background: var(--tl-navy);
+  padding: 0.13em 0.22em 0.17em;
+  border-radius: 0.08em;
+  -webkit-text-stroke: 0; text-shadow: none;
+}
+@supports not (paint-order: stroke fill) {
+  .tl-wordmark--light {
+    background: var(--tl-navy);
+    padding: 0.13em 0.22em 0.17em;
+    border-radius: 0.08em;
+    -webkit-text-stroke: 0; text-shadow: none;
+  }
+}
+/* Use a supplied logo asset for the symbol. Never recreate it with a text glyph. */

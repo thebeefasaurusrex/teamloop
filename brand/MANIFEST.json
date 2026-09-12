@@ -1,0 +1,136 @@
+{
+  "package": "TeamLoop brand kit v1.0 / public reference edition",
+  "files": [
+    {
+      "file": "AI-HANDOFF.md",
+      "bytes": 9780,
+      "sha256": "e0f1ca6502dc68def77db43b9e098980ce648501d6f351be117760675253c14c"
+    },
+    {
+      "file": "BRAND-GUIDE.md",
+      "bytes": 3769,
+      "sha256": "4216a85f391126ea4a600588e920bd574c353a11f2511add99bc13a59c202640"
+    },
+    {
+      "file": "README.md",
+      "bytes": 920,
+      "sha256": "e7d94a4339d3b494f534ea65e4472a29ce779f6224e661afaa30b59be3752b39"
+    },
+    {
+      "file": "VERIFICATION.json",
+      "bytes": 2859,
+      "sha256": "c914ed947635cac1867c2db2ed9b5cf346bda934cb210f744be32c23ddbaf2fb"
+    },
+    {
+      "file": "assets/teamloop-avatar.png",
+      "bytes": 44425,
+      "sha256": "f57bf5dd684fdcfb3fbf6022581b88e156a1aa70a178500a7dc4d3aa8280044b"
+    },
+    {
+      "file": "assets/teamloop-avatar.svg",
+      "bytes": 1527972,
+      "sha256": "31eb7e2f389173af50f2c50c5effba1bc1fdfb1ffb8d598cac418939689330aa"
+    },
+    {
+      "file": "assets/teamloop-horizontal-dark.png",
+      "bytes": 52059,
+      "sha256": "28f7e6091621d6dd9aba02aae474512ceb92478412d25155ec683d0b03adeb77"
+    },
+    {
+      "file": "assets/teamloop-horizontal-dark.svg",
+      "bytes": 1528112,
+      "sha256": "22da22999a61e6a36f1b71413319a53f3ee6e06ede7d5de67ae9cea48ae15f95"
+    },
+    {
+      "file": "assets/teamloop-horizontal-light.png",
+      "bytes": 70818,
+      "sha256": "2783b70b681f268cf8cc0d4e6d47e9f902cd4e64646b309ab92ae030fce86747"
+    },
+    {
+      "file": "assets/teamloop-horizontal-light.svg",
+      "bytes": 1528500,
+      "sha256": "a25147279a1341d42a3968a974ee13061d84c7d8f97d589fdb86f67b9afa904c"
+    },
+    {
+      "file": "assets/teamloop-stacked-dark.png",
+      "bytes": 63074,
+      "sha256": "d547d704aa1d3380656ea10cd398532dd844c6acc64e38c7b9411928ff5c5f8c"
+    },
+    {
+      "file": "assets/teamloop-stacked-dark.svg",
+      "bytes": 1528106,
+      "sha256": "dc38a09d0a23a354d811c1fe6c1d3b74fa1b3f683e0d56221dc84203defcf16d"
+    },
+    {
+      "file": "assets/teamloop-stacked-light.png",
+      "bytes": 82060,
+      "sha256": "fe961e6a875dd9c1b336d4ff047e2065612f9b986d15b3b322c57442e2bdd7fa"
+    },
+    {
+      "file": "assets/teamloop-stacked-light.svg",
+      "bytes": 1528495,
+      "sha256": "e76cbf79471bd703f6859878b58c3f64dc9cd419c6cab7a2132f5d6e712489b1"
+    },
+    {
+      "file": "assets/teamloop-symbol-blue.png",
+      "bytes": 51952,
+      "sha256": "2f9551aa13d63240b09e7bc925cb971e13ff6e7f3f27c405cb8ae85fc24d337f"
+    },
+    {
+      "file": "assets/teamloop-symbol-blue.svg",
+      "bytes": 1527919,
+      "sha256": "0d6fcc2a5aabd539c74750fc25271b88738e5ca163af9622316ecb72aa1d9146"
+    },
+    {
+      "file": "css/teamloop.css",
+      "bytes": 1341,
+      "sha256": "39f6d0d5a3f5391bfcb9ca7aef1d70f19fd4768dfaa31b8e061d296ba806a1fe"
+    },
+    {
+      "file": "design-tokens.json",
+      "bytes": 941,
+      "sha256": "42e39095a1f5d23ce3933af8bd80df411b8d51a2578e75329ff1dae8a0dbb19c"
+    },
+    {
+      "file": "fonts/Anta-Regular.ttf",
+      "bytes": 74304,
+      "sha256": "9f3b9723a50c1244d49906b1892b3aad43876ab9a2de80288db47821b0c7b298"
+    },
+    {
+      "file": "fonts/Anta-Regular.woff2",
+      "bytes": 15364,
+      "sha256": "f9ade076fedfdbe84bf33b952c796e8dd8144b85e3a79f9f5cfa128ac2fc06cc"
+    },
+    {
+      "file": "fonts/Sora-Variable.ttf",
+      "bytes": 111400,
+      "sha256": "84ff7096ae3ec6c8be47d906d1a0ba4de7f2ce78c615275c77301964a316e16c"
+    },
+    {
+      "file": "index.html",
+      "bytes": 1730486,
+      "sha256": "1372fefe18a2806dc6d81931acd5c42e4129ded514f142ab5fbfbbe877a38513"
+    },
+    {
+      "file": "licenses/Anta-OFL.txt",
+      "bytes": 4391,
+      "sha256": "139f4f23fd523c9756342f64b004986adb5e1e44002054f34f51989ad6cb0362"
+    },
+    {
+      "file": "licenses/README.md",
+      "bytes": 353,
+      "sha256": "d8cf74d33df0e4dd6edb9738e46f4fb778ba233f837af84960cce00699d7fee1"
+    },
+    {
+      "file": "licenses/Sora-OFL.txt",
+      "bytes": 4384,
+      "sha256": "855bd3bf8c48eaa45d3c0bbc077a12c977f3ca9a8efb3124e049b9300d56837f"
+    },
+    {
+      "file": "provenance.json",
+      "bytes": 2433,
+      "sha256": "00ce692b6566803d211b50cadb776fa5cda94fb50671de1e75da44076dd6a7c6"
+    }
+  ],
+  "notes": "Public-safe kit copied through its explicit file manifest. Text uses LF line endings. Excludes working scripts, QA screenshots and history. No separate artwork reuse license is granted by this manifest."
+}

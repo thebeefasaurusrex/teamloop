@@ -1,0 +1,12 @@
+node_modules/
+.teamloop/
+*.local.json
+.env
+.env.*
+*.key
+*.pem
+*.log
+*.zip
+*.tgz
+.DS_Store
+Thumbs.db

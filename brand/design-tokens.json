@@ -1,0 +1,36 @@
+{
+  "name": "TeamLoop",
+  "version": "1.0",
+  "date": "2026-09-12",
+  "symbol": "Assembly Cinch / AC1, refined junction",
+  "palette": "Arcade",
+  "colors": {
+    "blue": "#315BFF",
+    "green": "#43F052",
+    "navy": "#0C1220",
+    "offWhite": "#F5F7FB",
+    "white": "#FFFFFF",
+    "surface": "#151F32",
+    "muted": "#AEB9D0"
+  },
+  "font": {
+    "display": "Anta",
+    "displayWeight": 400,
+    "body": "Sora",
+    "bodyWeights": [
+      400,
+      600
+    ],
+    "bodyStatus": "Recommended supporting type, not part of the locked wordmark"
+  },
+  "treatment": {
+    "light": {
+      "stroke": "0.045em",
+      "strokeColor": "#0C1220",
+      "paintOrder": "stroke fill",
+      "shadow": "0.045em 0.05em 0 #0C1220"
+    },
+    "dark": "No stroke or shadow; exact blue symbol and green wordmark"
+  },
+  "assetStatus": "Digital source-derived exports. SVG containers retain a raster symbol; they are not fully vector production masters."
+}

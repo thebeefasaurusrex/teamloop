@@ -1,0 +1,8 @@
+{
+  "needs": ["engineering", "red-team"],
+  "stakes": "medium",
+  "requestedTeam": true,
+  "maxReviewers": 2,
+  "availableProviders": ["codex", "claude"],
+  "leadFamily": "openai"
+}

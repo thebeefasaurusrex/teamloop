@@ -1,0 +1,12 @@
+{
+  "id": "export-review",
+  "root": ".",
+  "kind": "review",
+  "dataClass": "synthetic",
+  "timeoutMs": 180000,
+  "assignment": "Review the supplied CSV export implementation against the brief. Cite source evidence. Separate defects, uncertainty and proposed tests. Do not claim to have run tests.",
+  "requirements": ["Export preserves the selected region filter.", "Column order is deterministic.", "Untrusted cell values are safe for the intended spreadsheet workflow."],
+  "constraints": ["Use supplied evidence only.", "Do not invoke tools or change files."],
+  "decisions": ["This is a new teaching fixture, not a historical evaluation task."],
+  "files": ["brief.md", "export.mjs"]
+}

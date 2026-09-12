@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "stateRoot": "../.teamloop/private",
+  "blockedLiterals": ["excluded@example.test"],
+  "limits": { "maxTaskTimeoutMs": 180000, "maxRunsPerProviderPacket": 1 },
+  "codex": "codex",
+  "codexHome": "./replace-with-dedicated-codex-home",
+  "claude": "claude",
+  "claudeUsageCreditsOff": false,
+  "billingCheckedAt": null,
+  "antigravity": "agy",
+  "antigravityHome": "./replace-with-os-user-antigravity-cli-directory",
+  "antigravityFileLoginCompatibility": false,
+  "allowApiSpend": false,
+  "nvidiaKeyFile": "./replace-with-private-key-file",
+  "providers": {
+    "codex": { "enabled": false, "allowedAccounts": [], "models": {} },
+    "claude": { "enabled": false, "allowedAccounts": [], "models": {} },
+    "gemini": { "enabled": false, "allowedAccounts": [], "models": {} },
+    "nvidia": { "enabled": false, "models": {} }
+  }
+}

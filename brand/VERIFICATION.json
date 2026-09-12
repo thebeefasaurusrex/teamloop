@@ -1,0 +1,114 @@
+{
+  "status": "passed",
+  "browser": "Microsoft Edge, isolated headless contexts",
+  "brandVersion": "1.0",
+  "viewports": [
+    1440,
+    768,
+    360
+  ],
+  "exports": [
+    {
+      "file": "assets/teamloop-horizontal-dark.png",
+      "width": 2200,
+      "height": 500,
+      "alphaChannel": true,
+      "background": "Transparent",
+      "bluePixels": 69191,
+      "greenPixels": 75251
+    },
+    {
+      "file": "assets/teamloop-horizontal-light.png",
+      "width": 2200,
+      "height": 500,
+      "alphaChannel": true,
+      "background": "Transparent",
+      "bluePixels": 69191,
+      "greenPixels": 75251
+    },
+    {
+      "file": "assets/teamloop-stacked-dark.png",
+      "width": 1800,
+      "height": 1160,
+      "alphaChannel": true,
+      "background": "Transparent",
+      "bluePixels": 122910,
+      "greenPixels": 75250
+    },
+    {
+      "file": "assets/teamloop-stacked-light.png",
+      "width": 1800,
+      "height": 1160,
+      "alphaChannel": true,
+      "background": "Transparent",
+      "bluePixels": 122910,
+      "greenPixels": 75250
+    },
+    {
+      "file": "assets/teamloop-symbol-blue.png",
+      "width": 1360,
+      "height": 745,
+      "alphaChannel": true,
+      "background": "Transparent",
+      "bluePixels": 257856,
+      "greenPixels": 0
+    },
+    {
+      "file": "assets/teamloop-avatar.png",
+      "width": 1024,
+      "height": 1024,
+      "alphaChannel": true,
+      "background": "Navy tile with transparent rounded corners",
+      "bluePixels": 117336,
+      "greenPixels": 0
+    }
+  ],
+  "copySections": 7,
+  "contrastChecks": [
+    {
+      "role": "dark body",
+      "ratio": 17.435084756798467
+    },
+    {
+      "role": "dark muted",
+      "ratio": 8.360005932962496
+    },
+    {
+      "role": "light body",
+      "ratio": 17.435084756798467
+    },
+    {
+      "role": "light muted",
+      "ratio": 6.684739220144057
+    },
+    {
+      "role": "blue action",
+      "ratio": 5.158402566489997
+    },
+    {
+      "role": "green action",
+      "ratio": 12.310227996343464
+    }
+  ],
+  "checks": [
+    "exact logo fill colors",
+    "approved source and font hashes",
+    "PNG alpha and dimensions",
+    "actual embedded Anta and Sora fonts loaded",
+    "all asset download paths exist",
+    "all anchors resolve and IDs unique",
+    "copy payloads for seven sections with test clipboard",
+    "clipboard-denied manual-selection fallback",
+    "keyboard focus",
+    "no page overflow or logo clipping",
+    "no-JavaScript core content",
+    "print-expanded copy sections",
+    "zero remote requests"
+  ],
+  "limits": [
+    "Clipboard payloads and denied-access fallback tested; OS clipboard integration not asserted.",
+    "PNG exports preserve a raster-derived symbol; no fully vector master.",
+    "Cross-application SVG, print/fabrication and sub-24px typography are not certified."
+  ],
+  "errors": []
+}

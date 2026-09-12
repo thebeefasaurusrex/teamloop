@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "stateRoot": "../.teamloop/demo",
+  "blockedLiterals": [],
+  "limits": { "maxTaskTimeoutMs": 180000, "maxRunsPerProviderPacket": 1 },
+  "providers": {
+    "mock": {
+      "enabled": true,
+      "models": { "fixture": { "efforts": ["default"], "imageInput": false } }
+    }
+  }
+}

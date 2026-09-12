@@ -1,0 +1,78 @@
+{
+  "identityVersion": "1.0",
+  "approvedSymbolSHA256": "ba897c4b2a5e509b42455d28926e7c7d664a3be1ceaa0af49e495f72ca35488e",
+  "antaWebfontSHA256": "f9ade076fedfdbe84bf33b952c796e8dd8144b85e3a79f9f5cfa128ac2fc06cc",
+  "fontDownloads": [
+    {
+      "file": "Anta-Regular.ttf",
+      "url": "https://raw.githubusercontent.com/Typedesigners/Anta-Regular/7ef14d1901946d317cb3bc136a895ff6c74c246c/fonts/ttf/Anta-Regular.ttf",
+      "sha256": "9f3b9723a50c1244d49906b1892b3aad43876ab9a2de80288db47821b0c7b298",
+      "bytes": 74304
+    },
+    {
+      "file": "Sora-Variable.ttf",
+      "url": "https://raw.githubusercontent.com/google/fonts/main/ofl/sora/Sora%5Bwght%5D.ttf",
+      "sha256": "84ff7096ae3ec6c8be47d906d1a0ba4de7f2ce78c615275c77301964a316e16c",
+      "bytes": 111400
+    }
+  ],
+  "antaSpecimen": "https://fonts.google.com/specimen/Anta",
+  "soraSpecimen": "https://fonts.google.com/specimen/Sora",
+  "sourceStatus": "Approved raster retained unchanged. Display mask applies a symmetric contrast clamp after inversion (slope 1.25, intercept -0.125) to suppress paper texture and produce opaque ink. No tracing or image regeneration.",
+  "assetKinds": [
+    {
+      "name": "teamloop-horizontal-dark",
+      "label": "Horizontal / dark backgrounds",
+      "kind": "horizontal",
+      "treatment": "dark",
+      "width": 1100,
+      "height": 250,
+      "pngScale": 2
+    },
+    {
+      "name": "teamloop-horizontal-light",
+      "label": "Horizontal / light backgrounds",
+      "kind": "horizontal",
+      "treatment": "light",
+      "width": 1100,
+      "height": 250,
+      "pngScale": 2
+    },
+    {
+      "name": "teamloop-stacked-dark",
+      "label": "Stacked / dark backgrounds",
+      "kind": "stacked",
+      "treatment": "dark",
+      "width": 900,
+      "height": 580,
+      "pngScale": 2
+    },
+    {
+      "name": "teamloop-stacked-light",
+      "label": "Stacked / light backgrounds",
+      "kind": "stacked",
+      "treatment": "light",
+      "width": 900,
+      "height": 580,
+      "pngScale": 2
+    },
+    {
+      "name": "teamloop-symbol-blue",
+      "label": "Symbol / transparent",
+      "kind": "symbol",
+      "treatment": "plain",
+      "width": 1360,
+      "height": 745,
+      "pngScale": 1
+    },
+    {
+      "name": "teamloop-avatar",
+      "label": "Avatar / navy ground",
+      "kind": "avatar",
+      "treatment": "dark",
+      "width": 512,
+      "height": 512,
+      "pngScale": 2
+    }
+  ]
+}
