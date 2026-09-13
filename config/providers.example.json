@@ -1,5 +1,7 @@
 {
   "schemaVersion": 1,
+  "git": "git",
+  "standardPolicyVersion": "1.0.0",
   "stateRoot": "../.teamloop/private",
   "blockedLiterals": ["excluded@example.test"],
   "limits": { "maxTaskTimeoutMs": 180000, "maxRunsPerProviderPacket": 1 },
@@ -8,11 +10,27 @@
   "claude": "claude",
   "claudeUsageCreditsOff": false,
   "billingCheckedAt": null,
+  "claudePlanAttested": null,
   "antigravity": "agy",
   "antigravityHome": "./replace-with-os-user-antigravity-cli-directory",
   "antigravityFileLoginCompatibility": false,
   "allowApiSpend": false,
   "nvidiaKeyFile": "./replace-with-private-key-file",
+  "executionModes": {
+    "claude-bridge": {
+      "enabled": false,
+      "provider": "claude",
+      "builderVersion": "1.0.2",
+      "validatedBuilderVersion": "1.0.2"
+    }
+  },
+  "claudeBridge": {
+    "model": "sonnet",
+    "effort": "high",
+    "allowedAuxiliaryModels": [],
+    "allowedAccounts": [],
+    "verificationExecutables": ["node"]
+  },
   "providers": {
     "codex": { "enabled": false, "allowedAccounts": [], "models": {} },
     "claude": { "enabled": false, "allowedAccounts": [], "models": {} },
