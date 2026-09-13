@@ -7,6 +7,8 @@ import { fileURLToPath } from 'node:url';
 import {geminiIdentity,geminiInvocation,decodeGemini} from './antigravity.mjs';
 import {nvidiaIdentity} from './nvidia-nim.mjs';
 import {loadConfig,resolveModel} from './config.mjs';
+import {activateExecutionMode,formatExecutionMode,resolveExecutionMode,selectStandardMode} from './execution-mode.mjs';
+import {runClaudeBuilder} from './claude-builder.mjs';
 
 export const hash = value => createHash('sha256').update(typeof value === 'string' || Buffer.isBuffer(value) ? value : JSON.stringify(value)).digest('hex');
 const json = async p => JSON.parse(await fs.readFile(p, 'utf8'));
@@ -325,7 +327,8 @@ export async function run(packetFile, provider, model, config, effort='default')
   const started = Date.now();
   const kind=packet.payload.kind ?? 'review';
   const maxArtifactBytes=kind==='artifact'?(packet.payload.maxArtifactBytes ?? 131072):null;
-  const record = {runId,taskId:packet.payload.id,kind,packetHash:packet.packetHash,provider,requestedModel:model,reasoningEffort:effort,timeoutMs,maxArtifactBytes,startedAt:new Date(started).toISOString(),status:'starting'};
+  const mode=await resolveExecutionMode(config);
+  const record = {runId,taskId:packet.payload.id,kind,packetHash:packet.packetHash,provider,requestedModel:model,reasoningEffort:effort,timeoutMs,maxArtifactBytes,requestedMode:mode.requestedMode,effectiveMode:mode.effectiveMode,standardPolicyVersion:mode.standardPolicyVersion,overlay:mode.overlay,startedAt:new Date(started).toISOString(),status:'starting'};
   try {
     await handle.writeFile(JSON.stringify({runId,runnerPid:process.pid}));
     await handle.close();
@@ -408,6 +411,13 @@ async function main() {
     const status=await json(path.join(dir,'status.json'));
     if(!['starting','running'].includes(status.status)) throw Error('Run is not active');
     await fs.writeFile(path.join(dir,'cancel.request'),'cancel\n'); console.log('Cancellation requested');
-  } else throw Error('Commands: prepare, run, status, cancel; final argument must be config.json');
+  } else if(command==='mode') {
+    if(args[0]==='status') console.log(JSON.stringify(formatExecutionMode(await resolveExecutionMode(config)),null,2));
+    else if(args[0]==='activate') console.log(JSON.stringify(formatExecutionMode(await activateExecutionMode(config,args[1],args[2])),null,2));
+    else if(args[0]==='standard') console.log(JSON.stringify(formatExecutionMode(await selectStandardMode(config)),null,2));
+    else throw Error('Mode commands: status, activate <name> <expires-at>, standard');
+  } else if(command==='build') {
+    const result=await runClaudeBuilder(await json(args[0]),config);console.log(JSON.stringify(result,null,2));if(result.status!=='completed')process.exitCode=1;
+  } else throw Error('Commands: prepare, run, status, cancel, mode, build; final argument must be config.json');
 }
 if(process.argv[1] && path.resolve(process.argv[1])===fileURLToPath(import.meta.url)) main().catch(error=>{console.error(redact(error.message));process.exitCode=1;});

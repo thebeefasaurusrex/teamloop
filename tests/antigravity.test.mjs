@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import {checkGeminiSettings,geminiEnv,guardGeminiEvent,decodeGemini,ensureGeminiAgent,reviewerAgent,designerAgent,geminiInvocation,resolveUserHome} from '../src/antigravity.mjs';
+import {checkGeminiSettings,enforceGeminiSettings,geminiEnv,guardGeminiEvent,decodeGemini,ensureGeminiAgent,reviewerAgent,designerAgent,geminiInvocation,resolveUserHome} from '../src/antigravity.mjs';
 import {execute,cleanEnv,decode} from '../src/team-loop.mjs';
 const model='example-model-medium';
 const init={event:'init',init:{model,agent:'team-loop-reviewer',permission_mode:'strict',tools:['view_file']}};
@@ -15,6 +15,19 @@ test('Antigravity requires privacy, billing, and deny rules',()=>{
   const settings={enableTelemetry:false,toolPermission:'strict',permissions:{deny:['read_file(*)','write_file(*)','read_url(*)','execute_url(*)','command(*)','unsandboxed(*)','mcp(*)']}};
   checkGeminiSettings(settings);
   for(const change of [{useG1Credits:true},{enableTelemetry:true},{modelProvider:'gemini'},{allowNonWorkspaceAccess:true},{permissions:{deny:[]}}]) assert.throws(()=>checkGeminiSettings({...settings,...change}));
+});
+test('Antigravity sparse persistence is repaired without overriding unsafe explicit values',async()=>{
+  const home=await fs.mkdtemp(path.join(os.tmpdir(),'team-loop-agy-settings-'));
+  const antigravityHome=path.join(home,'.gemini','antigravity-cli');
+  await fs.mkdir(antigravityHome,{recursive:true});
+  const file=path.join(antigravityHome,'settings.json');
+  const base={toolPermission:'strict',permissions:{deny:['read_file(*)','write_file(*)','read_url(*)','execute_url(*)','command(*)','unsandboxed(*)','mcp(*)']}};
+  await fs.writeFile(file,JSON.stringify(base));
+  assert.equal((await enforceGeminiSettings({antigravityHome})).enableTelemetry,false);
+  assert.equal(JSON.parse(await fs.readFile(file,'utf8')).enableTelemetry,false);
+  await fs.writeFile(file,JSON.stringify({...base,enableTelemetry:true}));
+  await assert.rejects(enforceGeminiSettings({antigravityHome}),/unsafe/);
+  assert.equal(JSON.parse(await fs.readFile(file,'utf8')).enableTelemetry,true);
 });
 test('Antigravity selects file-backed personal login mode without exporting a token',()=>{
   const config={antigravityHome:'C:/Users/example/.gemini/antigravity-cli'};
