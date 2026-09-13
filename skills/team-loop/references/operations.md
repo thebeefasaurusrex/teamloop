@@ -22,15 +22,55 @@ node src/team-loop.mjs run <packet.json> <provider> <model-id> <effort> config/m
 node src/team-loop.mjs status config/my.local.json
 node src/team-loop.mjs cancel <run-id> config/my.local.json
 node src/route.mjs examples/route.json config/roster.local.json config/my.local.json
+node src/team-loop.mjs mode status <config.json>
+node src/team-loop.mjs mode activate <name> <RFC3339-expiry> <config.json>
+node src/team-loop.mjs mode standard <config.json>
+node src/team-loop.mjs build <builder-spec.json> <config.json>
 ```
 
-The installed wrapper uses `route` as its first argument followed by the same three JSON paths. You supply a roster file and an availability snapshot. The example roster is intentionally incomplete. Unconfigured or unavailable workers become visible unfilled roles, not hidden calls to another model.
+The installed wrapper uses `route` as its first argument followed by the same three JSON paths. You supply a roster file and an availability snapshot. The example roster is intentionally incomplete. Unconfigured or unavailable workers become visible unfilled roles, not hidden calls to another model. The installed `run.mjs` wrapper also accepts `mode` and `build` as its first argument, followed by the same arguments as the repository CLI forms above.
 
 `prepare` selects 1-16 text files up to 1 MiB each, caps the text packet at 2 MiB, and supports up to 8 explicitly named images, at most 10 MiB each and 40 MiB total. Sources are checked by hash before and after a run. Image header checks are type sanity checks, not malware scanning, OCR, or full decoding. Image transport is currently limited to Claude and NVIDIA, and must also be enabled in the specific model profile. NVIDIA has an additional 2 MiB image payload cap.
 
 `run` receives one provider and one model. It starts one owned worker process with an isolated run directory and a sanitized environment. No shell interpolation is used. One provider lock prevents concurrent runs against the same provider in the same state directory. Separate providers can run concurrently; the lead is responsible for the overall team budget.
 
 Worker timeout is 30 seconds to 15 minutes, bounded by the packet and the configured cap. Authentication checks and setup are outside that worker timeout. Cancellation is cooperative at the runner level and terminates the local owned process tree; it cannot guarantee a remote request stops billing immediately. The output stream limit is 2 MiB. HTML output has its own declared byte cap, default 128 KiB. Configuration caps attempts per provider and packet, including failures. A new packet hash has a new attempt budget; this is not a monthly spending limiter.
+
+## Execution modes
+
+Standard mode is canonical. `mode status` reports the effective mode for a given configuration. `mode activate <name> <RFC3339-expiry> <config.json>` turns on a named, time-bounded overlay; `mode standard <config.json>` returns to standard immediately. An activated mode is an expiring overlay whose state is stored under `stateRoot`, not a rewrite of routing policy: it does not add providers, models, or roles, and it does not change which transports are recognized.
+
+Overlay state that is absent, malformed, disabled, tied to a policy that has since changed, expired, or otherwise not validated all resolve to standard rather than to some ambiguous partial state. Activation cannot exceed 31 days.
+
+## Claude Bridge builder
+
+`build <builder-spec.json> <config.json>` runs one Claude Bridge builder attempt against a fixed specification. The implemented builder spec fields are:
+
+- `schemaVersion`: the spec schema version the runner validates the file against.
+- `id`: a stable identifier for the task.
+- `repository`: the Git worktree the builder operates on.
+- `baseRevision`: the exact commit the repository's current HEAD must match before the attempt starts.
+- `dataClass`: the declared sensitivity classification of the task.
+- `timeoutMs`: the bounded wall-clock budget for the attempt.
+- `assignment`: the task description handed to Claude.
+- `requirements`: the itemized requirements Claude must satisfy.
+- `constraints`: the itemized limits Claude must respect.
+- `allowedFiles`: the exact set of repository-relative paths Claude may read, edit, or write.
+- verification command objects: each has `command`, `args`, and `timeoutMs`, and together define the deterministic checks run after the attempt.
+
+`repository` must be an existing Git worktree, and `baseRevision` must exactly match its current HEAD; a mismatch is rejected before any edit is attempted. The source checkout itself remains unchanged throughout: Claude works in a separate, detached worktree created under `stateRoot`, not in the checkout named by `repository`.
+
+`allowedFiles` accepts 1 to 64 distinct repository-relative paths. Absolute paths, parent-directory traversal, glob patterns, secret-path segments, and paths outside the repository are all rejected.
+
+Inside that detached worktree, Claude is given Read, Edit, and Write capability restricted to exactly the selected files. Shell access, glob or search tooling, web access, MCP, notebook edits, subagent spawning, commits, pushes, deployments, and any form of self-promotion are unavailable to it.
+
+Verification is deterministic and runs outside Claude, only through the configured `verificationExecutables`; Claude does not execute its own checks. The run retains changed paths, tool paths, models, rate-limit status, verification results, the candidate patch, and hashes for lead review.
+
+Before a builder attempt proceeds, the runner requires a recent manual Max 5x plan attestation, a usage-credits-off attestation, a normal claude.ai login, an allowed account, the configured model and effort, a matching validated builder version, and live overage telemetry showing overage is rejected and not in use.
+
+A completed builder run still does not promote, commit, push, or deploy anything, and it does not prove correctness. The lead must inspect the candidate patch before applying it.
+
+A failed build records its evidence and writes standard mode immediately. Operators must diagnose the failure and explicitly reactivate the mode; the runner does not silently retry.
 
 ## Access and billing gates
 
