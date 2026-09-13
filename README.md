@@ -84,6 +84,14 @@ Included preview adapters connect to Codex CLI, Claude Code CLI, Gemini through 
 
 The lead can also use its existing local tools before dispatch. This public release does **not** install the author's whole toolbox, remote machines, personal policies, browser sessions, or private model evaluations.
 
+## Temporary Claude Bridge
+
+Standard mode remains canonical. Claude Bridge is an explicitly activated, expiring execution overlay, not a routing-policy rewrite.
+
+When active, the builder receives an exact base commit and a selected file list, works inside a detached Git worktree, and cannot commit, push, deploy, browse, use shell commands, use MCP, or spawn subagents. Deterministic verification runs outside Claude, and the resulting candidate stays unpromoted pending lead review. Invalid, disabled, unvalidated, changed-policy, or expired mode state all resolve back to standard.
+
+These controls bound the runner. They are not a universal security sandbox. See the [operating reference](skills/team-loop/references/operations.md) for activation, builder-spec and rollback commands.
+
 ## Evidence and testing
 
 - [Field study and interactive build examples](https://frontier-model-routing-field-notes.netlify.app/): the personal experiment that informed the workflow, with limitations and attempt-level evidence.
