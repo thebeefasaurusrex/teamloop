@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
+import os from 'node:os';
 import {cleanClaudeBuilderEnv,decodeClaudeBuilder} from '../src/claude-builder.mjs';
 
-const root=path.resolve('synthetic-worktree');
+const root=path.join(os.tmpdir(),'synthetic-worktree');
 const resultEvent=overrides=>({type:'result',subtype:'success',is_error:false,terminal_reason:'completed',permission_denials:[],usage:{server_tool_use:{web_search_requests:0,web_fetch_requests:0}},modelUsage:{'claude-sonnet-5':{},'claude-haiku-4-5-20251001':{}},structured_output:{summary:'Implemented the bounded change.',uncertainties:[]},...overrides});
 const rate={type:'rate_limit_event',rate_limit_info:{status:'allowed',rateLimitType:'five_hour',overageStatus:'rejected',overageDisabledReason:'org_level_disabled',isUsingOverage:false}};
 const stream=(tool,result=resultEvent(),rateEvent=rate)=>[tool?JSON.stringify({type:'assistant',message:{content:[{type:'tool_use',name:tool.name,input:tool.input??{}}]}}):null,JSON.stringify(rateEvent),JSON.stringify(result)].filter(Boolean).join('\n');

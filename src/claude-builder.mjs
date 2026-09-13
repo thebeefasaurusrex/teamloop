@@ -186,6 +186,9 @@ export async function runClaudeBuilder(spec,config) {
     for(const item of spec.verification) {
       const outcome=await runProcess(item.command,item.args,{cwd:worktree,env:cleanClaudeBuilderEnv(),timeoutMs:item.timeoutMs,maxBytes:4194304});
       verification.push({command:item.command,args:item.args,exitCode:outcome.code,stopReason:outcome.stopped,stdout:redact(outcome.stdout).slice(0,20000),stderr:redact(outcome.stderr).slice(0,20000)});
+      record.verification=verification.map(entry=>({command:entry.command,args:entry.args,exitCode:entry.exitCode,stopReason:entry.stopReason}));
+      await atomicJson(path.join(runDir,'verification.json'),verification);
+      await atomicJson(path.join(runDir,'status.json'),record);
       if(outcome.code!==0||outcome.stopped) throw Error('Deterministic verification failed');
     }
     const sourceStatusAfter=await git(config,['-C',repository,'status','--porcelain=v1','--untracked-files=all']);
@@ -196,7 +199,6 @@ export async function runClaudeBuilder(spec,config) {
     if(hash(patchAfter)!==hash(patchBefore)) throw Error('Verification mutated the candidate patch');
     await fs.writeFile(path.join(runDir,'candidate.patch'),patchAfter);
     await atomicJson(path.join(runDir,'result.json'),decoded.result);
-    await atomicJson(path.join(runDir,'verification.json'),verification);
     record.status='completed';record.changedFiles=changedAfter.all;record.diffSha256=hash(patchAfter);record.actualModels=decoded.actualModels;record.rateLimit=decoded.rateLimit;record.tools=decoded.tools;record.usage=decoded.usage;record.verification=verification.map(item=>({command:item.command,args:item.args,exitCode:item.exitCode,stopReason:item.stopReason}));
     if((await claudeIdentity(config,env)).fingerprint!==record.account.fingerprint) throw Error('Claude identity changed during build');
   } catch(error) {

@@ -29,3 +29,6 @@ test('release check rejects unsupported non-UTF8 files without crashing',async()
 test('release check still screens text for credentials beside binary assets',async()=>{
   const result=await check({'brand/readme.md':['ghp','x'.repeat(30)].join('_')});assert.notEqual(result.status,0);assert.match(result.stderr,/Possible credential/);
 });
+test('release check ignores a git worktree pointer file',async()=>{
+  const result=await check({'.git':Buffer.from('gitdir: ../private-worktree-metadata')});assert.equal(result.status,0,result.stderr);
+});
