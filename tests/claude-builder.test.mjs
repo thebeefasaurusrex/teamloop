@@ -1,8 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
-import {claudeFileToolRules,cleanClaudeBuilderEnv,decodeClaudeBuilder} from '../src/claude-builder.mjs';
+import {claudeFileToolRules,cleanClaudeBuilderEnv,decodeClaudeBuilder,failClaudeBridge} from '../src/claude-builder.mjs';
+import {activateExecutionMode,resolveExecutionMode} from '../src/execution-mode.mjs';
 
 const root=path.join(os.tmpdir(),'synthetic-worktree');
 const resultEvent=overrides=>({type:'result',subtype:'success',is_error:false,terminal_reason:'completed',permission_denials:[],usage:{server_tool_use:{web_search_requests:0,web_fetch_requests:0}},modelUsage:{'claude-sonnet-5':{},'claude-haiku-4-5-20251001':{}},structured_output:{summary:'Implemented the bounded change.',uncertainties:[]},...overrides});
@@ -36,4 +38,15 @@ test('Claude builder rejects prohibited tools, escaped paths, billing tools, den
   assert.throws(()=>decodeClaudeBuilder(stream(null,resultEvent({permission_denials:[{tool_name:'Bash'}]})),root,'sonnet',['claude-haiku-4-5'],['README.md']));
   assert.throws(()=>decodeClaudeBuilder(stream(null,resultEvent({modelUsage:{'claude-opus-5':{}}})),root,'sonnet',['claude-haiku-4-5'],['README.md']));
   assert.throws(()=>decodeClaudeBuilder(stream(null,resultEvent(),{type:'rate_limit_event',rate_limit_info:{overageStatus:'allowed',isUsingOverage:true}}),root,'sonnet',['claude-haiku-4-5'],['README.md']));
+});
+
+test('Claude builder failure immediately selects standard mode',async()=>{
+  const stateRoot=await fs.mkdtemp(path.join(os.tmpdir(),'claude-bridge-failure-'));
+  const config={stateRoot,standardPolicyVersion:'1.0.0',executionModes:{'claude-bridge':{enabled:true,provider:'claude',builderVersion:'1.0.3',validatedBuilderVersion:'1.0.3'}}};
+  await activateExecutionMode(config,'claude-bridge',new Date(Date.now()+60000).toISOString());
+  const record={};
+  await failClaudeBridge(config,record,new Error('synthetic failure'));
+  assert.equal(record.status,'failed');
+  assert.equal(record.modeAfterFailure.effectiveMode,'standard');
+  assert.equal((await resolveExecutionMode(config)).effectiveMode,'standard');
 });

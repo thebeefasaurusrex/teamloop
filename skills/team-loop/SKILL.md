@@ -23,6 +23,14 @@ Prepare a frozen packet using the installed runner at `scripts/run.mjs`. Record 
 
 Use `route`, `prepare`, `run`, `status`, and `cancel` as described in the reference. Do not silently retry a failed run, raise its cap, change the roster, or complete a worker's missing deliverable. Mark an assisted attempt as new work linked to its original failure.
 
+## Use the temporary Claude Bridge
+
+Standard remains canonical. The bridge is a separate, explicitly activated path that expires and fails closed; reviewer packets never grant project-editing tools, and the builder path is distinct from review. For a bounded repository implementation with exact files and deterministic verification: check the effective mode, freeze an exact base commit and a builder spec, run one builder attempt, then inspect the retained candidate patch and its verification output before deliberately applying only the changes you accept.
+
+Claude works only in a detached worktree on the files you selected. It has no shell, web, MCP, subagent, commit, push, deploy, or promotion authority. Codex stays the scope owner, verifier, and integrator, makes the final judgment, and is the only actor that commits or pushes.
+
+A failure returns to standard with no silent retry. Ambiguous work, credential-bearing work, browser-account work, other external-action work, or anything otherwise unsuitable for a detached worktree stays on the standard path. See [the operating reference](references/operations.md) for exact mode, build, and rollback commands.
+
 ## Bring back a decision, not a transcript dump
 
 Inspect the returned status and output. Completed delivery is not verified quality. Validate claims against source evidence and run the relevant local checks. Treat generated HTML as untrusted active content; never auto-open it in an authenticated browser.

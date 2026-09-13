@@ -20,8 +20,8 @@
     "claude-bridge": {
       "enabled": false,
       "provider": "claude",
-      "builderVersion": "1.0.2",
-      "validatedBuilderVersion": "1.0.2"
+      "builderVersion": "1.0.3",
+      "validatedBuilderVersion": "1.0.3"
     }
   },
   "claudeBridge": {

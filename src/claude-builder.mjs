@@ -3,9 +3,9 @@ import path from 'node:path';
 import os from 'node:os';
 import {createHash,randomUUID} from 'node:crypto';
 import {spawn} from 'node:child_process';
-import {resolveExecutionMode} from './execution-mode.mjs';
+import {resolveExecutionMode,selectStandardMode} from './execution-mode.mjs';
 
-export const CLAUDE_BUILDER_VERSION='1.0.2';
+export const CLAUDE_BUILDER_VERSION='1.0.3';
 const allowedTools=new Set(['Read','Edit','Write','StructuredOutput']);
 const denyPath=/(?:^|[\\/])(?:\.env(?:\..*)?|\.git|\.ssh|\.aws|\.codex|\.claude|\.gemini|node_modules|user data|login data|cookies|auth\.json|oauth_creds\.json|credentials[^\\/]*)(?:[\\/]|$)/i;
 const denyText=/-----BEGIN [A-Z ]*PRIVATE KEY-----|\b(?:sk-(?:ant-)?[A-Za-z0-9_-]{16,}|nvapi-[A-Za-z0-9_-]{16,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|AIza[A-Za-z0-9_-]{30,})|["']?(?:access_token|refresh_token|id_token|api_key|password)["']?\s*[:=]\s*["'][^"']{8,}/i;
@@ -138,6 +138,18 @@ export function claudeFileToolRules(files) {
   return files.flatMap(file=>{const normalized=file.split(/[\\/]/).join('/');return [`Read(/${normalized})`,`Edit(/${normalized})`];});
 }
 
+export async function failClaudeBridge(config,record,error) {
+  record.status='failed';
+  record.error=redact(error.message);
+  try {
+    const mode=await selectStandardMode(config,{activatedBy:'claude-builder-failure'});
+    record.modeAfterFailure={requestedMode:mode.requestedMode,effectiveMode:mode.effectiveMode,reason:mode.reason};
+  } catch(modeError) {
+    record.rollbackError=redact(modeError.message);
+  }
+  return record;
+}
+
 export async function runClaudeBuilder(spec,config) {
   validateSpec(spec,config);
   const mode=await resolveExecutionMode(config);
@@ -206,7 +218,7 @@ export async function runClaudeBuilder(spec,config) {
     record.status='completed';record.changedFiles=changedAfter.all;record.diffSha256=hash(patchAfter);record.actualModels=decoded.actualModels;record.rateLimit=decoded.rateLimit;record.tools=decoded.tools;record.usage=decoded.usage;record.verification=verification.map(item=>({command:item.command,args:item.args,exitCode:item.exitCode,stopReason:item.stopReason}));
     if((await claudeIdentity(config,env)).fingerprint!==record.account.fingerprint) throw Error('Claude identity changed during build');
   } catch(error) {
-    record.status='failed';record.error=redact(error.message);
+    await failClaudeBridge(config,record,error);
   } finally {
     record.elapsedMs=Date.now()-started;record.finishedAt=new Date().toISOString();
     try {await atomicJson(path.join(runDir,'status.json'),record);} finally {await fs.unlink(lock);}
