@@ -11,6 +11,7 @@ const errors=[];
 async function inventory(folder='') {
   for(const item of await fs.readdir(path.join(root,folder),{withFileTypes:true})) {
     const relative=folder?folder+'/'+item.name:item.name;
+    if(item.name==='.git') continue;
     if(item.isSymbolicLink()) {errors.push('Symlink not allowed: '+relative);continue;}
     if(item.isDirectory()) {if(!ignoredDirectories.has(item.name)) await inventory(relative);}
     else if(!allowed.has(relative) && !relative.endsWith('.local.json')) errors.push('Unlisted file: '+relative);
