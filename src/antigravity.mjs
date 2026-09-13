@@ -38,21 +38,42 @@ export async function ensureGeminiAgent(config,env=process.env,install=false) {
 
 /** Validate the installed first-party CLI's documented settings before each run. */
 export function checkGeminiSettings(settings) {
-  // Antigravity omits default-false keys when it rewrites settings.json.
+  // Antigravity may omit false-valued settings. Telemetry is different: its
+  // documented default is true, so the adapter must keep false explicit.
   if (settings.modelProvider || (settings.useG1Credits!==undefined && settings.useG1Credits!==false) || settings.enableTelemetry !== false || settings.toolPermission !== 'strict' || (settings.allowNonWorkspaceAccess!==undefined && settings.allowNonWorkspaceAccess!==false) || !Array.isArray(settings.permissions?.deny) || !denyRules.every(rule=>settings.permissions.deny.includes(rule))) throw Error('Antigravity personal-subscription, privacy, or tool-denial settings are unsafe');
+}
+
+/** Restore an explicit telemetry opt-out when Antigravity 1.2.2 sparsifies it away. */
+export async function enforceGeminiSettings(config) {
+  const file=path.join(config.antigravityHome,'settings.json');
+  const settings=JSON.parse(await fs.readFile(file,'utf8'));
+  if(settings.enableTelemetry===undefined) {
+    const repaired={...settings,enableTelemetry:false};
+    checkGeminiSettings(repaired);
+    const temporary=`${file}.teamloop-${process.pid}-${Date.now()}.tmp`;
+    await fs.writeFile(temporary,JSON.stringify(repaired,null,2)+'\n',{flag:'wx'});
+    await fs.rename(temporary,file);
+    const verified=JSON.parse(await fs.readFile(file,'utf8'));
+    checkGeminiSettings(verified);
+    return verified;
+  }
+  checkGeminiSettings(settings);
+  return settings;
 }
 
 /** Resolve only the personal file-backed OAuth identity, without logging credentials. */
 export async function geminiIdentity(config, env, execute) {
   if (config.providers?.gemini?.enabled !== true || !config.antigravity || !config.antigravityHome || config.antigravityFileLoginCompatibility!==true) throw Error('Antigravity adapter or file-login compatibility is not configured');
-  checkGeminiSettings(JSON.parse(await fs.readFile(path.join(config.antigravityHome,'settings.json'),'utf8')));
+  await enforceGeminiSettings(config);
   await ensureGeminiAgent(config,env);
   const runtimeEnv=geminiEnv(env,config);
   const agents=await execute(config.antigravity,['agents'],{env:runtimeEnv,timeoutMs:20000});
   if(agents.code!==0 || agents.stopped || !['team-loop-reviewer','team-loop-designer'].every(name=>new RegExp(`(?:^|\\s)${name}(?:\\s|$)`).test(agents.stdout))) throw Error('Antigravity did not discover the required team-loop agents');
+  await enforceGeminiSettings(config);
   // Remote-login mode selects the CLI's personal file credentials instead of the unrelated IDE keyring login.
   const refresh=await execute(config.antigravity,['models'],{env:runtimeEnv,timeoutMs:20000});
   if (refresh.code!==0 || refresh.stopped) throw Error('Antigravity authentication refresh failed');
+  await enforceGeminiSettings(config);
   const auth=JSON.parse(await fs.readFile(path.join(config.antigravityHome,'antigravity-oauth-token'),'utf8'));
   if(auth.auth_method!=='consumer' || !auth.token?.access_token) throw Error('Antigravity consumer OAuth credentials required');
   let response;

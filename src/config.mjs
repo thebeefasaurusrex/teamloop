@@ -4,7 +4,7 @@ import path from 'node:path';
 const providerIds = new Set(['mock', 'codex', 'claude', 'gemini', 'nvidia']);
 const accountProviders = ['codex', 'claude', 'gemini'];
 const paths = ['stateRoot', 'codexHome', 'antigravityHome', 'nvidiaKeyFile'];
-const commands = ['codex', 'claude', 'antigravity'];
+const commands = ['codex', 'claude', 'antigravity', 'git'];
 
 /** Load only an explicitly selected configuration. Relative paths use its directory. */
 export async function loadConfig(filename) {
