@@ -29,6 +29,7 @@
     "effort": "high",
     "allowedAuxiliaryModels": [],
     "allowedAccounts": [],
+    "allowedPlanAttestations": ["max-5x", "max-20x"],
     "verificationExecutables": ["node"]
   },
   "providers": {
