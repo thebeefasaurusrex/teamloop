@@ -21,9 +21,10 @@ This is a **public preview**, extracted from a working personal setup. The porta
 | Control room | You talk to the lead; the lead owns the final decision | Your Codex conversation |
 | Skill | Tells the lead how to scope, route, brief and adjudicate | A short Markdown instruction file and operating reference |
 | Router | Suggests an eligible worker for each requested role | Deterministic JavaScript plus your JSON roster |
+| Execution plan | Freezes dependencies, failure behavior and concurrency before dispatch | Strict versioned JSON with typed review stages |
 | Runner | Starts a bounded job and checks its delivery | Local Node.js scripts and provider adapters |
 | Shared context | Gives reviewers the same selected evidence | Hashed JSON packets, not a hidden shared brain |
-| Receipts | Keeps attempts, outputs, timings and failures | Local files, not a hosted database |
+| Receipts | Keeps attempts, lifecycle events, outputs, timings and failures | Local files, not a hosted database |
 
 The lead does the judgment. The runner does the plumbing. Your existing provider software still performs the model call. Nothing in this repo runs continuously in the background.
 
@@ -31,7 +32,8 @@ The lead does the judgment. The runner does the plumbing. Your existing provider
 Your request in Codex
   -> Lead scopes the task and runs useful deterministic checks
   -> Router recommends a small team from your configured roster
-  -> Runner sends a frozen evidence packet to selected workers
+  -> A typed execution plan freezes dependencies and failure behavior
+  -> Runner sends frozen evidence packets and records lifecycle events
   -> Lead checks findings, resolves disagreements and edits the project
   -> You get the result, material contributions and verification limits
 ```
@@ -56,7 +58,7 @@ node scripts/demo.mjs
 node scripts/check-release.mjs
 ```
 
-There are **no runtime dependencies to install** and these commands make **no model or authentication calls**. The demo starts a local mock worker, freezes a real example packet, validates a structured response, and saves a run record in a printed temporary directory. It intentionally returns a blocked review: the plumbing worked, but no AI actually reviewed the task. Temporary test/demo files are retained for inspection.
+There are **no runtime dependencies to install** and these commands make **no model or authentication calls**. The demo freezes a real example packet, runs one typed execution plan through a local mock worker, validates the structured response, and saves the plan, lifecycle events, and worker record in a printed temporary directory. It intentionally returns a blocked review: the plumbing worked, but no AI actually reviewed the task. Temporary test/demo files are retained for inspection.
 
 ## Use it from Codex
 
@@ -75,6 +77,20 @@ Then ask naturally:
 > Use TeamLoop to review this feature. Run the existing checks first. Bring in an independent reviewer if the remaining risk warrants it. Keep the team to two workers, show me what they caught, and you make the final call.
 
 On first use, give the lead your private config and roster paths. After that, you should not need a spellbook of model invocations. The exact commands, setup gates and recovery steps live in the [operating reference](skills/team-loop/references/operations.md).
+
+## Inspect a team run before dispatch
+
+TeamLoop execution plans are a narrow orchestration contract for already prepared review packets. They are not generic task-runner files. A plan may name review stages, dependencies, a concurrency ceiling, and whether a failed review is required or advisory. It cannot contain shell commands, remote imports, automatic retries, fallback providers, or worker-authored actions.
+
+```sh
+node src/team-loop.mjs plan validate <plan.json> config/my.local.json
+node src/team-loop.mjs plan show <plan.json> config/my.local.json
+node src/team-loop.mjs plan graph <plan.json> config/my.local.json
+node src/team-loop.mjs plan run <plan.json> config/my.local.json
+node src/team-loop.mjs plan status config/my.local.json
+```
+
+`plan run` writes schema-versioned NDJSON lifecycle events to stdout and retains the resolved plan, status, and event ledger under the configured state directory. Events identify stages and worker run records without copying packet contents, prompts, raw provider output, credentials, or account identities. Completed execution means the configured worker stages reached terminal states. The lead still has to inspect the reviews, adjudicate disagreements, and decide whether anything should change.
 
 ## Bring your own lineup
 

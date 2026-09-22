@@ -22,6 +22,11 @@ node src/team-loop.mjs run <packet.json> <provider> <model-id> <effort> config/m
 node src/team-loop.mjs status config/my.local.json
 node src/team-loop.mjs cancel <run-id> config/my.local.json
 node src/route.mjs examples/route.json config/roster.local.json config/my.local.json
+node src/team-loop.mjs plan validate <plan.json> config/my.local.json
+node src/team-loop.mjs plan show <plan.json> config/my.local.json
+node src/team-loop.mjs plan graph <plan.json> config/my.local.json
+node src/team-loop.mjs plan run <plan.json> config/my.local.json
+node src/team-loop.mjs plan status [plan-run-id] config/my.local.json
 node src/team-loop.mjs mode status <config.json>
 node src/team-loop.mjs mode activate <name> <RFC3339-expiry> <config.json>
 node src/team-loop.mjs mode standard <config.json>
@@ -29,6 +34,16 @@ node src/team-loop.mjs build <builder-spec.json> <config.json>
 ```
 
 The installed wrapper uses `route` as its first argument followed by the same three JSON paths. You supply a roster file and an availability snapshot. The example roster is intentionally incomplete. Unconfigured or unavailable workers become visible unfilled roles, not hidden calls to another model. The installed `run.mjs` wrapper also accepts `mode` and `build` as its first argument, followed by the same arguments as the repository CLI forms above.
+
+## Execution plans
+
+An execution plan coordinates one to sixteen already prepared review packets. It has `schemaVersion`, `taskId`, `policyVersion`, a `maxConcurrency` value from one to three, and a `stages` array. Each stage has an ID, `type: "review"`, a packet path, provider, model, optional effort, dependencies, and a `failureMode` of `required` or `advisory`.
+
+`required` means a failed stage cancels anything that depends on it and makes the plan run fail. `advisory` preserves the failed review as evidence but allows dependent stages to proceed; the plan ends `completed_with_failures`. Independent stages continue even when another stage fails. Stages for different providers may run concurrently up to the plan ceiling. Two stages for one provider run sequentially, preserving the existing one-provider lock and attempt controls.
+
+Plans are strict data, not scripts. Unknown fields fail validation. There is no command field, shell execution, remote import, automatic retry, provider substitution, or final-decision action. `plan validate`, `plan show`, and `plan graph` make no provider call. `plan run` delegates each stage to the same packet, account, model, timeout, transport, and attempt checks used by the existing `run` command.
+
+The plan runner writes one NDJSON object per lifecycle event to stdout and to `plan-runs/<plan-run-id>/events.ndjson` under `stateRoot`. The same directory retains a resolved `plan.json` snapshot and atomic `status.json`. Events contain plan and stage identity, status, worker-run pointers, packet hashes returned by the worker runner, verdict labels, and sanitized failure metadata. They do not contain packet source text, prompts, raw model output, credentials, or account identities. A terminal plan run still has `leadDecisionRequired: true`.
 
 `prepare` selects 1-16 text files up to 1 MiB each, caps the text packet at 2 MiB, and supports up to 8 explicitly named images, at most 10 MiB each and 40 MiB total. Sources are checked by hash before and after a run. Image header checks are type sanity checks, not malware scanning, OCR, or full decoding. Image transport is currently limited to Claude and NVIDIA, and must also be enabled in the specific model profile. NVIDIA has an additional 2 MiB image payload cap.
 

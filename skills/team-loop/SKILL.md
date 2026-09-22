@@ -21,7 +21,9 @@ Select only the necessary source files, requirements, constraints, accepted deci
 
 Prepare a frozen packet using the installed runner at `scripts/run.mjs`. Record the same packet hash for comparable reviewers. Declare timeout, expected output and any assistance before dispatch. The runner does not execute source code or grant reviewers the lead's project-editing tools.
 
-Use `route`, `prepare`, `run`, `status`, and `cancel` as described in the reference. Do not silently retry a failed run, raise its cap, change the roster, or complete a worker's missing deliverable. Mark an assisted attempt as new work linked to its original failure.
+For a multi-worker or phased review, resolve and validate a typed execution plan before dispatch. Inspect it with `plan show` or `plan graph`, then use `plan run` for bounded dependency scheduling and a retained NDJSON lifecycle ledger. Plans may contain review stages only. They never authorize shell commands, remote imports, retries, fallback providers, or final adjudication.
+
+Use `route`, `prepare`, `run`, `status`, `cancel`, and `plan` as described in the reference. Do not silently retry a failed run, raise its cap, change the roster, or complete a worker's missing deliverable. Mark an assisted attempt as new work linked to its original failure.
 
 ## Use the temporary Claude Bridge
 

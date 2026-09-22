@@ -9,6 +9,7 @@ import {nvidiaIdentity} from './nvidia-nim.mjs';
 import {loadConfig,resolveModel} from './config.mjs';
 import {activateExecutionMode,formatExecutionMode,resolveExecutionMode,selectStandardMode} from './execution-mode.mjs';
 import {runClaudeBuilder} from './claude-builder.mjs';
+import {describeExecutionPlan,executionPlanGraph,executionPlanStatuses,loadExecutionPlan,runExecutionPlan} from './execution-plan.mjs';
 
 export const hash = value => createHash('sha256').update(typeof value === 'string' || Buffer.isBuffer(value) ? value : JSON.stringify(value)).digest('hex');
 const json = async p => JSON.parse(await fs.readFile(p, 'utf8'));
@@ -418,6 +419,23 @@ async function main() {
     else throw Error('Mode commands: status, activate <name> <expires-at>, standard');
   } else if(command==='build') {
     const result=await runClaudeBuilder(await json(args[0]),config);console.log(JSON.stringify(result,null,2));if(result.status!=='completed')process.exitCode=1;
-  } else throw Error('Commands: prepare, run, status, cancel, mode, build; final argument must be config.json');
+  } else if(command==='plan') {
+    const action=args[0];
+    if(action==='status') {
+      const planRunId=args.length===3?args[1]:null;
+      for(const record of await executionPlanStatuses(config,planRunId)) console.log(JSON.stringify(record));
+    } else {
+      const planFile=args[1];
+      if(!planFile) throw Error('Plan commands require a plan file');
+      const plan=await loadExecutionPlan(planFile,config);
+      if(action==='validate') console.log(JSON.stringify({schemaVersion:1,valid:true,file:path.resolve(planFile),taskId:plan.taskId,stageCount:plan.stages.length},null,2));
+      else if(action==='show') console.log(JSON.stringify(describeExecutionPlan(plan),null,2));
+      else if(action==='graph') process.stdout.write(executionPlanGraph(plan));
+      else if(action==='run') {
+        const result=await runExecutionPlan(plan,config,run,{planSource:path.resolve(planFile),sanitizeError:redact});
+        if(result.status==='failed') process.exitCode=1;
+      } else throw Error('Plan commands: validate <plan>, show <plan>, graph <plan>, run <plan>, status [plan-run-id]');
+    }
+  } else throw Error('Commands: prepare, run, status, cancel, plan, mode, build; final argument must be config.json');
 }
 if(process.argv[1] && path.resolve(process.argv[1])===fileURLToPath(import.meta.url)) main().catch(error=>{console.error(redact(error.message));process.exitCode=1;});
