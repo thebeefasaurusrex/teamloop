@@ -9,7 +9,11 @@ const created = [];
 export const keepFixtures = process.env.TEAMLOOP_KEEP_FIXTURES === '1';
 
 export async function tempDir(prefix) {
-  const folder = await fs.mkdtemp(path.join(os.tmpdir(), prefix));
+  // Normalize platform aliases before fixtures become packet roots. macOS may
+  // expose /var through /private/var, while Windows runners may return an 8.3
+  // TEMP path that realpath expands later. Keeping one canonical spelling
+  // prevents containment checks from mistaking the same directory for an escape.
+  const folder = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), prefix)));
   created.push(folder);
   return folder;
 }
