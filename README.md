@@ -58,7 +58,41 @@ node scripts/demo.mjs
 node scripts/check-release.mjs
 ```
 
-There are **no runtime dependencies to install** and these commands make **no model or authentication calls**. The demo freezes a real example packet, runs one typed execution plan through a local mock worker, validates the structured response, and saves the plan, lifecycle events, and worker record in a printed temporary directory. It intentionally returns a blocked review: the plumbing worked, but no AI actually reviewed the task. Temporary test/demo files are retained for inspection.
+There are **no runtime dependencies to install** and these commands make **no model or authentication calls**. The demo freezes a real example packet, runs one typed execution plan through a local mock worker, validates the structured response, and saves the plan, lifecycle events, and worker record in a printed temporary directory. It intentionally returns a blocked review: the plumbing worked, but no AI actually reviewed the task. The demo directory is retained for inspection. Test fixtures are removed when the suite finishes unless you set `TEAMLOOP_KEEP_FIXTURES=1`.
+
+The same three commands run in CI on Linux, macOS and Windows with Node 22 and 24, alongside a Prettier formatting check.
+
+### What a run looks like
+
+The demo produces three kinds of receipt. First, the plan, viewable before dispatch as Graphviz DOT:
+
+```dot
+digraph TeamLoopPlan {
+  rankdir=LR;
+  "mock-review" [label="mock-review\nNo-network fixture review\nmock/fixture\nrequired"];
+}
+```
+
+Second, the NDJSON lifecycle ledger written to stdout and retained under `plan-runs/<plan-run-id>/events.ndjson`. It carries identifiers and outcomes, never packet contents or prompts:
+
+```json
+{"schemaVersion":1,"timestamp":"2026-09-22T02:32:55.321Z","planRunId":"44f3bed2-…","taskId":"demo-plan","event":"run_started","policyVersion":"demo-1","planHash":"f9cdd881…","maxConcurrency":1,"stageCount":1}
+{"schemaVersion":1,"timestamp":"2026-09-22T02:32:55.322Z","planRunId":"44f3bed2-…","taskId":"demo-plan","event":"stage_started","stageId":"mock-review","provider":"mock","model":"fixture","effort":"default","failureMode":"required"}
+{"schemaVersion":1,"timestamp":"2026-09-22T02:32:55.426Z","planRunId":"44f3bed2-…","taskId":"demo-plan","event":"stage_finished","stageId":"mock-review","status":"completed","workerRunId":"36a9f846-…","packetHash":"923ad83b…","verdict":"blocked"}
+{"schemaVersion":1,"timestamp":"2026-09-22T02:32:55.432Z","planRunId":"44f3bed2-…","taskId":"demo-plan","event":"run_finished","status":"completed","elapsedMs":114,"leadDecisionRequired":true,"stages":[{"id":"mock-review","status":"completed","workerRunId":"36a9f846-…"}]}
+```
+
+Third, the worker's structured output, validated against a schema bound to the packet hash and saved as `runs/<worker-run-id>/review.json`. A real reviewer returns `approve`, `revise` or `blocked` with evidence-backed findings; the fixture returns the honest answer for a run where no model was called:
+
+```json
+{
+  "packetHash": "923ad83b3928be2e7296ed1cca57ff7d6bafe6f48e8be60e228279c5ace38e5c",
+  "verdict": "blocked",
+  "summary": "The runner delivered this fixture successfully. A real review has not happened.",
+  "findings": [],
+  "uncertainties": ["No model was called. The lead must perform or commission a real review."]
+}
+```
 
 ## Use it from Codex
 
@@ -112,7 +146,7 @@ These controls bound the runner. They are not a universal security sandbox. See 
 
 - [Field study and interactive build examples](https://frontier-model-routing-field-notes.netlify.app/): the personal experiment that informed the workflow, with limitations and attempt-level evidence.
 - [Evaluation kit](evals/README.md): a reusable protocol, fresh public example, attempt format and summary script. It does not reproduce private historical prompts or import old rankings into your roster.
-- `tests/`: software regression checks for the runner, configuration, routing, provider decoders and isolated installation. These are not evidence that one model is better than another.
+- `tests/`: software regression checks for the runner, configuration, routing, provider decoders, shared guards and isolated installation. They run in GitHub Actions on Linux, macOS and Windows. These are not evidence that one model is better than another.
 - [Release status](docs/RELEASE_STATUS.md): what has and has not been verified in this portable edition.
 
 ## Guardrails and limits

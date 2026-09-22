@@ -8,6 +8,10 @@ Before proposing a provider change, verify the real first-party access method, s
 
 Use local fixtures for ordinary tests. New transport behavior should include success, failure, incomplete output, unexpected tools and cancellation cases. Live-provider smoke tests are opt-in, use an authorized non-sensitive packet, and document the CLI version, platform and usage involved. Never require paid model calls in ordinary CI.
 
-Run `node --test` and `node scripts/check-release.mjs`. Update the operating reference when a command or safety condition changes. Add any new public file to `release-files.json` after reviewing its contents. Do not include personal model rosters, private outcomes, secrets or generated runtime state.
+Run `node --test`, `node scripts/check-release.mjs` and `npm run format:check`. Formatting is Prettier with the checked-in `.prettierrc.json`; run `npm run format` before committing code, JSON or YAML. Markdown prose and the brand kit are deliberately excluded. Update the operating reference when a command or safety condition changes. Add any new public file to `release-files.json` after reviewing its contents. Do not include personal model rosters, private outcomes, secrets or generated runtime state.
+
+Security-relevant patterns (denied paths, secret patterns, redaction, environment filtering, the process runner and the lock) live once in `src/shared.mjs`. Import them; do not copy them into another module. Test fixtures should come from `tests/helpers.mjs` so they are cleaned up automatically.
+
+Continuous integration runs the fixture suite, the no-account demo, the release check and the formatting check on Linux, macOS and Windows with Node 22 and 24. It never logs in to a provider or calls a model.
 
 For evaluation changes, preserve the original outcome rows. Report assistance, failure attribution and missing data openly. Do not translate a handful of tasks into a universal model ranking.

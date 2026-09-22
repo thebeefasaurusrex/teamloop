@@ -13,6 +13,8 @@ TeamLoop is a local orchestration tool, not a universal sandbox or a privacy fir
 - Accepts only typed review stages in execution plans; rejects unknown fields, shell-shaped commands, missing dependencies, cycles, and concurrency above the documented ceiling.
 - Requires explicit setup for Gemini agent definitions and refuses to overwrite conflicting files.
 - Excludes personal configuration, credential files, runtime state, historical conversations and private evaluation logs from the release allowlist.
+- Screens every allowlisted text file for credential shapes, personal OS paths and email addresses other than documentation placeholders before publication.
+- Keeps every denied path, secret pattern, redaction rule, environment filter and process guard in one shared module so the reviewer runner, plan runner and Claude Bridge builder cannot drift apart.
 
 ## What it does not promise
 
