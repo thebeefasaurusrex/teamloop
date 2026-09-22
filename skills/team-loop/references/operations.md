@@ -77,11 +77,11 @@ Overlay state that is absent, malformed, disabled, tied to a policy that has sin
 
 `allowedFiles` accepts 1 to 64 distinct repository-relative paths. Absolute paths, parent-directory traversal, glob patterns, secret-path segments, and paths outside the repository are all rejected.
 
-Inside that detached worktree, Claude is given Read, Edit, and Write capability restricted to exactly the selected files. Shell access, glob or search tooling, web access, MCP, notebook edits, subagent spawning, commits, pushes, deployments, and any form of self-promotion are unavailable to it.
+The builder prompt names the host operating system from the runner's own platform, so the same configuration works on Windows, macOS and Linux. Inside that detached worktree, Claude is given Read, Edit, and Write capability restricted to exactly the selected files. Shell access, glob or search tooling, web access, MCP, notebook edits, subagent spawning, commits, pushes, deployments, and any form of self-promotion are unavailable to it.
 
 Verification is deterministic and runs outside Claude, only through the configured `verificationExecutables`; Claude does not execute its own checks. The run retains changed paths, tool paths, models, rate-limit status, verification results, the candidate patch, and hashes for lead review.
 
-Before a builder attempt proceeds, the runner requires a recent manual Max 5x plan attestation, a usage-credits-off attestation, a normal claude.ai login, an allowed account, the configured model and effort, a matching validated builder version, and live overage telemetry showing overage is rejected and not in use.
+Before a builder attempt proceeds, the runner requires a recent manual plan attestation, a usage-credits-off attestation, a normal claude.ai login, an allowed account, the configured model and effort, a matching validated builder version, and live overage telemetry showing overage is rejected and not in use. The plan attestation is `claudePlanAttested`, which must match one label in `claudeBridge.allowedPlanAttestations` (for example `max-5x` or `max-20x`); the labels are operator vocabulary, not values TeamLoop can read from the provider.
 
 A completed builder run still does not promote, commit, push, or deploy anything, and it does not prove correctness. The lead must inspect the candidate patch before applying it.
 
@@ -107,9 +107,11 @@ Its `settings.json` must have `enableTelemetry:false`, `toolPermission:"strict"`
 
 Each started or budget-rejected attempt gets its own run directory and `status.json`, including requested model, requested effort, packet hash, timing, completion status, error classification, and provider-reported usage where present. Unknown usage is null, not zero. These token counters are not directly comparable prices across providers. Preflight rejections before run allocation are command errors, not dispatched attempts. Capture them separately in an evaluation log.
 
-Classifications are diagnostic labels, not final attribution of blame. Preserve malformed/truncated output and classify harness limits separately from worker quality. A transport may report a structured response but still have failed a browser test. A model may produce useful partial work but not complete a conforming delivery.
+Classifications are diagnostic labels, not final attribution of blame: `policy`, `timeout`, `runner-output-limit`, `attempt-budget`, `authentication`, `output-contract`, `model-or-provider`, or `runner-or-unknown`. Preserve malformed/truncated output and classify harness limits separately from worker quality.
 
-After a crash, inspect the lock's PID and run record. Do not delete a lock while its process or an owned child is running. Once you have verified no owner survives, you may remove that one stale lock and document the interrupted attempt. There is no automatic stale-lock stealing.
+Screening failures name what tripped and where, for example `Excluded secret-like material (credential assignment) in src/auth.js` or `Excluded configured blocked literal in requirements[2]`. The three secret labels are `private key block`, `provider token` and `credential assignment`. There is deliberately no per-task override: remove or redact the material from the selected evidence, or narrow the file selection, then prepare a new packet. A transport may report a structured response but still have failed a browser test. A model may produce useful partial work but not complete a conforming delivery.
+
+A dispatch against a provider whose lock is held fails immediately with `Provider <name> is busy: lock held by run <id> (runner PID <pid>)`. After a crash, inspect the lock's PID and run record. Do not delete a lock while its process or an owned child is running. Once you have verified no owner survives, you may remove that one stale lock and document the interrupted attempt. There is no automatic stale-lock stealing.
 
 ## Security limits
 

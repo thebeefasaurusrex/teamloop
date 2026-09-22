@@ -1,19 +1,50 @@
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import {fileURLToPath} from 'node:url';
-import {prepare,run} from '../src/team-loop.mjs';
-import {loadConfig} from '../src/config.mjs';
-import {runExecutionPlan} from '../src/execution-plan.mjs';
-const repo=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
-const config=await loadConfig(path.join(repo,'config/demo.json'));
-config.stateRoot=await fs.mkdtemp(path.join(os.tmpdir(),'teamloop-demo-'));
-const spec=JSON.parse(await fs.readFile(path.join(repo,'examples/task.json'),'utf8'));
-spec.root=path.join(repo,'examples');
-const packet=await prepare(spec,config);
-const plan={schemaVersion:1,taskId:'demo-plan',policyVersion:'demo-1',maxConcurrency:1,stages:[{id:'mock-review',type:'review',description:'No-network fixture review',dependsOn:[],failureMode:'required',packetFile:packet,provider:'mock',model:'fixture',effort:'default'}]};
-const planRecord=await runExecutionPlan(plan,config,run,{output:null,planSource:'demo-generated'});
-if(planRecord.status!=='completed') throw Error('Demo plan failed');
-const workerRunId=planRecord.stages[0].workerRunId;
-const review=JSON.parse(await fs.readFile(path.join(config.stateRoot,'runs',workerRunId,'review.json'),'utf8'));
-console.log(JSON.stringify({notice:'NO MODEL CALLED. Plan execution and runner delivery passed; fixture verdict is blocked because no actual review occurred.',packet,planRecord,review,eventLedger:path.join(config.stateRoot,'plan-runs',planRecord.planRunId,'events.ndjson'),retainedDisposableDirectory:config.stateRoot},null,2));
+import { fileURLToPath } from 'node:url';
+import { prepare, run } from '../src/team-loop.mjs';
+import { loadConfig } from '../src/config.mjs';
+import { runExecutionPlan } from '../src/execution-plan.mjs';
+const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const config = await loadConfig(path.join(repo, 'config/demo.json'));
+config.stateRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'teamloop-demo-'));
+const spec = JSON.parse(await fs.readFile(path.join(repo, 'examples/task.json'), 'utf8'));
+spec.root = path.join(repo, 'examples');
+const packet = await prepare(spec, config);
+const plan = {
+  schemaVersion: 1,
+  taskId: 'demo-plan',
+  policyVersion: 'demo-1',
+  maxConcurrency: 1,
+  stages: [
+    {
+      id: 'mock-review',
+      type: 'review',
+      description: 'No-network fixture review',
+      dependsOn: [],
+      failureMode: 'required',
+      packetFile: packet,
+      provider: 'mock',
+      model: 'fixture',
+      effort: 'default',
+    },
+  ],
+};
+const planRecord = await runExecutionPlan(plan, config, run, { output: null, planSource: 'demo-generated' });
+if (planRecord.status !== 'completed') throw Error('Demo plan failed');
+const workerRunId = planRecord.stages[0].workerRunId;
+const review = JSON.parse(await fs.readFile(path.join(config.stateRoot, 'runs', workerRunId, 'review.json'), 'utf8'));
+console.log(
+  JSON.stringify(
+    {
+      notice: 'NO MODEL CALLED. Plan execution and runner delivery passed; fixture verdict is blocked because no actual review occurred.',
+      packet,
+      planRecord,
+      review,
+      eventLedger: path.join(config.stateRoot, 'plan-runs', planRecord.planRunId, 'events.ndjson'),
+      retainedDisposableDirectory: config.stateRoot,
+    },
+    null,
+    2,
+  ),
+);

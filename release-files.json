@@ -1,6 +1,9 @@
 [
   ".gitattributes",
+  ".github/workflows/ci.yml",
   ".gitignore",
+  ".prettierignore",
+  ".prettierrc.json",
   "ACKNOWLEDGMENTS.md",
   "CONTRIBUTING.md",
   "LICENSE",
@@ -63,14 +66,17 @@
   "src/mock-worker.mjs",
   "src/nvidia-nim.mjs",
   "src/route.mjs",
+  "src/shared.mjs",
   "src/team-loop.mjs",
   "tests/antigravity.test.mjs",
   "tests/claude-builder.test.mjs",
   "tests/evals.test.mjs",
   "tests/execution-mode.test.mjs",
   "tests/execution-plan.test.mjs",
+  "tests/helpers.mjs",
   "tests/nvidia-nim.test.mjs",
   "tests/public.test.mjs",
   "tests/release.test.mjs",
+  "tests/shared.test.mjs",
   "tests/team-loop.test.mjs"
 ]

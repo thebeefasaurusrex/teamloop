@@ -1,0 +1,42 @@
+# Fixture-only checks. No provider login, model call, or credential is used; see SECURITY.md.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Node ${{ matrix.node }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Regression tests
+        run: node --test
+      - name: No-account demo
+        run: node scripts/demo.mjs
+      - name: Release allowlist and screening
+        run: node scripts/check-release.mjs
+
+  format:
+    name: Formatting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Prettier check
+        run: npx --yes prettier@3.9.8 --check .

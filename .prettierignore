@@ -1,0 +1,11 @@
+# Brand kit files are exported design assets, not maintained source.
+brand/
+# Licenses and fixtures are reproduced verbatim.
+LICENSE
+NOTICE
+evals/attempts.example.json
+# Runtime state and private configuration never enter the repository.
+.teamloop/
+*.local.json
+# Prose stays exactly as written; Prettier covers code, JSON and YAML.
+*.md
