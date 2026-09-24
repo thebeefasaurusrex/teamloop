@@ -13,6 +13,7 @@ Public preview: `0.2.0-rc.2`. The initial preview `0.2.0-rc.1` was prepared and 
 - The Claude Bridge builder prompt names the host platform from the runner instead of stating Windows, and the accepted plan attestation labels are configuration (`claudeBridge.allowedPlanAttestations`) rather than a fixed `max-5x`.
 - Added GitHub Actions running the fixture suite, the demo, the release check and a Prettier formatting check on Linux, macOS and Windows with Node 22 and 24. Added `.prettierrc.json` and reformatted all code, JSON and YAML; Markdown prose and the brand kit are excluded from formatting.
 - Test fixtures are removed after each test file unless `TEAMLOOP_KEEP_FIXTURES=1` is set. Six regression tests were added for the new behavior, bringing the suite to 90.
+- `run` and `status` print a digest by default (`--full` for the complete record); `status` shows the ten newest runs unless narrowed with `--task` or widened with `--last`/`--all`; `plan run` writes a one-line summary to stderr beside its NDJSON ledger. Completed review records now carry severity counts and an uncertainty count so a digest never reopens `review.json`. Bare `status` on a long-lived state directory previously printed every record ever made, about 42,000 tokens for the author's lab. Five tests added, bringing the suite to 95.
 
 ## Included
 

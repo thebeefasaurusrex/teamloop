@@ -18,8 +18,8 @@ From the repository, use `node src/team-loop.mjs`. In an installed skill, use `n
 
 ```
 node src/team-loop.mjs prepare examples/task.json config/my.local.json
-node src/team-loop.mjs run <packet.json> <provider> <model-id> <effort> config/my.local.json
-node src/team-loop.mjs status config/my.local.json
+node src/team-loop.mjs run <packet.json> <provider> <model-id> <effort> [--full] config/my.local.json
+node src/team-loop.mjs status [--last <n>] [--task <id>] [--all] [--full] config/my.local.json
 node src/team-loop.mjs cancel <run-id> config/my.local.json
 node src/route.mjs examples/route.json config/roster.local.json config/my.local.json
 node src/team-loop.mjs plan validate <plan.json> config/my.local.json
@@ -32,6 +32,8 @@ node src/team-loop.mjs mode activate <name> <RFC3339-expiry> <config.json>
 node src/team-loop.mjs mode standard <config.json>
 node src/team-loop.mjs build <builder-spec.json> <config.json>
 ```
+
+`run` and `status` print a digest by default: outcome, verdict, finding counts by severity, uncertainty count, elapsed time, normalized token usage, failure class, and the paths of the retained files. They never print the prompt, raw provider output, account fingerprint or execution-mode overlay; add `--full` to get the complete record. `status` shows the ten newest runs, newest first, plus any incomplete or corrupt records because those block dispatch; narrow with `--task <id>` or widen with `--last <n>` or `--all`. `plan run` keeps its NDJSON ledger on stdout and writes a one-line JSON summary of the plan run and each stage to stderr. Read a review from the `review.json` path the digest gives you and an artifact from its `.html` path; `artifact.json` is a duplicate of the HTML kept for integrity and costs a lead the same tokens again.
 
 The installed wrapper uses `route` as its first argument followed by the same three JSON paths. You supply a roster file and an availability snapshot. The example roster is intentionally incomplete. Unconfigured or unavailable workers become visible unfilled roles, not hidden calls to another model. The installed `run.mjs` wrapper also accepts `mode` and `build` as its first argument, followed by the same arguments as the repository CLI forms above.
 

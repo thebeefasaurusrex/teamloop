@@ -35,7 +35,7 @@ A failure returns to standard with no silent retry. Ambiguous work, credential-b
 
 ## Bring back a decision, not a transcript dump
 
-Inspect the returned status and output. Completed delivery is not verified quality. Validate claims against source evidence and run the relevant local checks. Treat generated HTML as untrusted active content; never auto-open it in an authenticated browser.
+Inspect the digest that `run`, `status` and `plan run` print; open the full record only when the digest raises a question. Read reviews from `review.json` and artifacts from the written `.html` file, never from `artifact.json`, and never run `status` without `--task` or `--last` on a state directory with a long history. Completed delivery is not verified quality. Validate claims against source evidence and run the relevant local checks. Treat generated HTML as untrusted active content; never auto-open it in an authenticated browser.
 
 Adjudicate important findings as accepted, rejected with evidence, or unresolved. Only the lead edits the actual project. Keep a short decision file in the user's task workspace: objective, source revision/packet, accepted decisions, unresolved risks, checks performed, and next action. Keep local run records private. There is no automatic cross-model memory synchronization or background daemon.
 

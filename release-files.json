@@ -70,6 +70,7 @@
   "src/team-loop.mjs",
   "tests/antigravity.test.mjs",
   "tests/claude-builder.test.mjs",
+  "tests/digest.test.mjs",
   "tests/evals.test.mjs",
   "tests/execution-mode.test.mjs",
   "tests/execution-plan.test.mjs",

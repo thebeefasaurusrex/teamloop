@@ -627,13 +627,20 @@ export async function run(packetFile, provider, model, config, effort = 'default
       await atomicJson(path.join(runDir, 'artifact.json'), decoded.review);
       await fs.writeFile(path.join(runDir, decoded.review.artifact.filename), decoded.review.artifact.content);
       record.artifact = decoded.review.artifact.filename;
-    } else await atomicJson(path.join(runDir, 'review.json'), decoded.review);
+      record.artifactBytes = Buffer.byteLength(decoded.review.artifact.content);
+    } else {
+      await atomicJson(path.join(runDir, 'review.json'), decoded.review);
+      record.verdict = decoded.review.verdict;
+      // Severity counts live in the record so a digest never has to reopen review.json.
+      record.findings = { high: 0, medium: 0, low: 0 };
+      for (const finding of decoded.review.findings) record.findings[finding.severity]++;
+    }
+    record.uncertainties = decoded.review.uncertainties.length;
     record.status = 'completed';
     record.usage = decoded.usage;
     record.actualModel = decoded.actualModel;
     record.completionSource = decoded.completionSource ?? 'terminal-response';
     record.providerMeta = decoded.providerMeta ?? null;
-    if (kind === 'review') record.verdict = decoded.review.verdict;
     record.warnings = decoded.warnings ?? [];
   } catch (error) {
     record.status = 'failed';
@@ -673,8 +680,89 @@ export async function statuses(config) {
   return records;
 }
 
+/** Token counts in one shape regardless of provider; null when the provider reported nothing. */
+function usageSummary(usage) {
+  if (!usage || typeof usage !== 'object') return null;
+  const input = usage.input_tokens ?? usage.prompt_tokens ?? null;
+  const cached = usage.cached_input_tokens ?? usage.cache_read_input_tokens ?? null;
+  const output = usage.output_tokens ?? usage.completion_tokens ?? null;
+  return input == null && output == null ? null : { input, cached, output };
+}
+
+/**
+ * The one-screen view of a run record: outcome, counts and file pointers, never the prompt, raw output,
+ * account fingerprint or overlay state. Those stay in status.json for the operator who asks for --full.
+ */
+export function digest(record, config) {
+  const runDir = record.runId && config ? path.join(path.resolve(config.stateRoot), 'runs', record.runId) : null;
+  const files = runDir
+    ? {
+        status: path.join(runDir, 'status.json'),
+        ...(record.artifact
+          ? { artifact: path.join(runDir, record.artifact) }
+          : record.status === 'completed'
+            ? { review: path.join(runDir, 'review.json') }
+            : {}),
+      }
+    : undefined;
+  const value = {
+    runId: record.runId,
+    taskId: record.taskId,
+    kind: record.kind,
+    status: record.status,
+    note: record.note,
+    provider: record.provider,
+    model: record.requestedModel,
+    actualModel: record.actualModel,
+    effort: record.reasoningEffort,
+    verdict: record.verdict,
+    findings: record.findings,
+    uncertainties: record.uncertainties,
+    artifact: record.artifact,
+    artifactBytes: record.artifactBytes,
+    elapsedMs: record.elapsedMs,
+    startedAt: record.startedAt,
+    usage: usageSummary(record.usage),
+    failureClass: record.failureClass,
+    stopReason: record.stopReason ?? undefined,
+    error: record.error,
+    warnings: record.warnings?.length ? record.warnings.length : undefined,
+    files,
+  };
+  return Object.fromEntries(Object.entries(value).filter(([, v]) => v !== undefined && v !== null));
+}
+
+/** Newest first; incomplete and corrupt records always surface because they block dispatch. */
+export function selectStatuses(records, { task, last = 10, all = false } = {}) {
+  const warnings = records.filter(r => !r.startedAt);
+  let runs = records.filter(r => r.startedAt).sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+  if (task) runs = runs.filter(r => r.taskId === task);
+  if (!all) runs = runs.slice(0, last);
+  return [...warnings, ...runs];
+}
+
+/** Separate --flags from positional arguments; --task and --last take a value. */
+function parseArgs(args) {
+  const flags = {},
+    positional = [];
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (!arg.startsWith('--')) {
+      positional.push(arg);
+      continue;
+    }
+    const name = arg.slice(2);
+    if (['task', 'last'].includes(name)) flags[name] = args[++i];
+    else flags[name] = true;
+  }
+  if (flags.last !== undefined && !/^[1-9]\d{0,3}$/.test(flags.last)) throw Error('--last takes a whole number from 1 to 9999');
+  if (flags.task !== undefined && !/^[a-z0-9][a-z0-9-]{0,63}$/.test(flags.task)) throw Error('--task takes a task ID');
+  return { flags, args: positional };
+}
+
 async function main() {
-  const [command, ...args] = process.argv.slice(2);
+  const [command, ...rawArgs] = process.argv.slice(2);
+  const { flags, args } = parseArgs(rawArgs);
   const config = await loadConfig(args.at(-1));
   if (command === 'prepare') {
     const spec = await readJson(args[0]);
@@ -683,10 +771,14 @@ async function main() {
   } else if (command === 'run') {
     const effort = args.length === 5 ? args[3] : 'default';
     const result = await run(args[0], args[1], args[2], config, effort);
-    console.log(JSON.stringify(result, null, 2));
+    console.log(JSON.stringify(flags.full ? result : digest(result, config), null, 2));
     if (result.status !== 'completed') process.exitCode = 1;
   } else if (command === 'status') {
-    for (const record of await statuses(config)) console.log(JSON.stringify(record));
+    const records = await statuses(config);
+    const chosen = selectStatuses(records, { task: flags.task, last: flags.last ? Number(flags.last) : 10, all: flags.all });
+    for (const record of chosen) console.log(JSON.stringify(flags.full ? record : digest(record, config)));
+    if (chosen.length < records.length)
+      console.error(`Showing ${chosen.length} of ${records.length} run records. Use --last <n>, --task <id>, --all; add --full for complete records.`);
   } else if (command === 'cancel') {
     if (!/^[a-f0-9-]{36}$/.test(args[0])) throw Error('Invalid run ID');
     const dir = path.join(config.stateRoot, 'runs', args[0]);
@@ -720,6 +812,11 @@ async function main() {
       else if (action === 'graph') process.stdout.write(executionPlanGraph(plan));
       else if (action === 'run') {
         const result = await runExecutionPlan(plan, config, run, { planSource: path.resolve(planFile), sanitizeError: redact });
+        // stdout stays a clean NDJSON ledger; the one-line summary goes to stderr for the lead to read.
+        const stages = result.stages.map(s =>
+          [s.id, s.status, s.verdict, s.workerRunId ? 'run ' + s.workerRunId : (s.failureClass ?? s.reason)].filter(Boolean).join(' '),
+        );
+        console.error(JSON.stringify({ planRunId: result.planRunId, status: result.status, elapsedMs: result.elapsedMs, stages, leadDecisionRequired: true }));
         if (result.status === 'failed') process.exitCode = 1;
       } else throw Error('Plan commands: validate <plan>, show <plan>, graph <plan>, run <plan>, status [plan-run-id]');
     }
