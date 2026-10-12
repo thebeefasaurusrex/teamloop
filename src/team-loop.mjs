@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { geminiIdentity, geminiInvocation, decodeGemini } from './antigravity.mjs';
 import { nvidiaIdentity } from './nvidia-nim.mjs';
+import { selectEvidence, assertEvidence } from './evidence-manifest.mjs';
 import { loadConfig, resolveModel } from './config.mjs';
 import { activateExecutionMode, formatExecutionMode, resolveExecutionMode, selectStandardMode } from './execution-mode.mjs';
 import { runClaudeBuilder } from './claude-builder.mjs';
@@ -64,6 +65,30 @@ export async function readImage(root, relative, includeBytes = false) {
   return { path: relative, sha256: hash(bytes), mediaType, sizeBytes: bytes.length, ...(includeBytes ? { bytes } : {}) };
 }
 
+/** Read only explicitly selected files; required evidence never expands the allowlist. */
+async function evidenceForSpec(spec, config) {
+  if (!Array.isArray(spec.files) || !spec.files.length || spec.files.length > 16 || new Set(spec.files).size !== spec.files.length)
+    throw Error('Specify 1-16 distinct files');
+  const root = await fs.realpath(spec.root);
+  if (denyPath.test(root) || root === path.parse(root).root || root === os.homedir()) throw Error('Unsafe task root');
+  const inputs = await Promise.all(
+    spec.files.map(async relative => {
+      try {
+        return await readSource(root, relative, config.blockedLiterals);
+      } catch (error) {
+        if (error.code === 'ENOENT') return { path: relative, missing: true };
+        throw error;
+      }
+    }),
+  );
+  return { root, ...selectEvidence(inputs, spec) };
+}
+
+/** Local coverage check. A ready report does not prove semantic sufficiency. */
+export async function inspectEvidence(spec, config) {
+  return (await evidenceForSpec(spec, config)).report;
+}
+
 export async function prepare(spec, config) {
   if (spec.attachments?.length) throw Error('Generic attachments are not implemented');
   if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(spec.id ?? '')) throw Error('Invalid task ID');
@@ -81,9 +106,8 @@ export async function prepare(spec, config) {
   if (!Number.isSafeInteger(maxArtifactBytes) || maxArtifactBytes < 16384 || maxArtifactBytes > 1048576)
     throw Error('Artifact byte limit must be a whole number from 16384 to 1048576');
   if (kind !== 'artifact' && spec.maxArtifactBytes !== undefined) throw Error('Artifact byte limit is valid only for artifact tasks');
-  const root = await fs.realpath(spec.root);
-  if (denyPath.test(root) || root === path.parse(root).root || root === os.homedir()) throw Error('Unsafe task root');
-  const sources = await Promise.all(spec.files.map(p => readSource(root, p, config.blockedLiterals)));
+  const { root, sources, manifest, report } = await evidenceForSpec(spec, config);
+  assertEvidence(report);
   const imagePaths = spec.images ?? [];
   if (!Array.isArray(imagePaths) || imagePaths.length > 8 || new Set(imagePaths).size !== imagePaths.length) throw Error('Specify 0-8 distinct images');
   const images = await Promise.all(imagePaths.map(p => readImage(root, p)));
@@ -104,6 +128,7 @@ export async function prepare(spec, config) {
     decisions: spec.decisions,
     sources,
     images,
+    ...(manifest ? { evidenceManifest: manifest } : {}),
   };
   scanStrings(payload, config.blockedLiterals);
   // Screen the encoded form too so JSON escaping cannot hide a pattern that spans a string boundary.
@@ -128,11 +153,19 @@ export async function checkPacket(packet) {
   if (hash(packet.payload) !== packet.packetHash) throw Error('Packet integrity failure');
   safeText(JSON.stringify(packet.payload), [], 'encoded packet');
   scanStrings(packet.payload);
+  const inputs = [];
   for (const source of packet.payload.sources) {
     if (hash(source.content) !== source.sha256) throw Error('Packet source integrity failure: ' + source.path);
     const current = await readSource(packet.root, source.path);
-    if (current.sha256 !== source.sha256) throw Error('Stale packet: ' + source.path);
+    if (current.sha256 !== (source.originalSha256 ?? source.sha256)) throw Error('Stale packet: ' + source.path);
+    inputs.push(current);
   }
+  const evidence = selectEvidence(inputs, {
+    evidenceManifest: packet.payload.evidenceManifest,
+    sourceSlices: packet.payload.sources.filter(source => source.coverage).map(source => ({ path: source.path, ...source.coverage })),
+  });
+  assertEvidence(evidence.report);
+  if (JSON.stringify(evidence.sources) !== JSON.stringify(packet.payload.sources)) throw Error('Packet evidence coverage integrity failure');
   for (const image of packet.payload.images ?? []) {
     const current = await readImage(packet.root, image.path);
     if (current.sha256 !== image.sha256 || current.mediaType !== image.mediaType || current.sizeBytes !== image.sizeBytes)
@@ -683,10 +716,15 @@ export async function statuses(config) {
 /** Token counts in one shape regardless of provider; null when the provider reported nothing. */
 function usageSummary(usage) {
   if (!usage || typeof usage !== 'object') return null;
-  const input = usage.input_tokens ?? usage.prompt_tokens ?? null;
-  const cached = usage.cached_input_tokens ?? usage.cache_read_input_tokens ?? null;
-  const output = usage.output_tokens ?? usage.completion_tokens ?? null;
-  return input == null && output == null ? null : { input, cached, output };
+  const value = {
+    input: usage.input_tokens ?? usage.prompt_tokens,
+    cached: usage.cached_input_tokens ?? usage.cache_read_input_tokens ?? usage.cache_read_tokens ?? usage.prompt_tokens_details?.cached_tokens,
+    output: usage.output_tokens ?? usage.completion_tokens,
+    thinking: usage.thinking_tokens ?? usage.output_tokens_details?.reasoning_tokens ?? usage.completion_tokens_details?.reasoning_tokens,
+    total: usage.total_tokens,
+  };
+  const entries = Object.entries(value).filter(([, count]) => count != null);
+  return entries.length ? Object.fromEntries(entries) : null;
 }
 
 /**
@@ -732,13 +770,17 @@ export function digest(record, config) {
   return Object.fromEntries(Object.entries(value).filter(([, v]) => v !== undefined && v !== null));
 }
 
-/** Newest first; incomplete and corrupt records always surface because they block dispatch. */
+/** Cap recent history, never active/corrupt records or failures in the requested scope. */
 export function selectStatuses(records, { task, last = 10, all = false } = {}) {
   const warnings = records.filter(r => !r.startedAt);
-  let runs = records.filter(r => r.startedAt).sort((a, b) => b.startedAt.localeCompare(a.startedAt));
-  if (task) runs = runs.filter(r => r.taskId === task);
-  if (!all) runs = runs.slice(0, last);
-  return [...warnings, ...runs];
+  const ordered = records.filter(r => r.startedAt).sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+  const scoped = task ? ordered.filter(r => r.taskId === task) : ordered;
+  const recent = all ? scoped : scoped.slice(0, last);
+  const attention = ordered.filter(
+    r => ['starting', 'running', 'incomplete-record', 'corrupt-record'].includes(r.status) || (r.status !== 'completed' && (!task || r.taskId === task)),
+  );
+  const included = new Set([...recent, ...attention].map(r => r.runId));
+  return [...warnings, ...ordered.filter(r => included.has(r.runId))];
 }
 
 /** Separate --flags from positional arguments; --task and --last take a value. */
@@ -753,10 +795,11 @@ function parseArgs(args) {
     }
     const name = arg.slice(2);
     if (['task', 'last'].includes(name)) flags[name] = args[++i];
-    else flags[name] = true;
+    else if (['full', 'all'].includes(name)) flags[name] = true;
+    else throw Error('Unknown option: ' + arg);
   }
-  if (flags.last !== undefined && !/^[1-9]\d{0,3}$/.test(flags.last)) throw Error('--last takes a whole number from 1 to 9999');
-  if (flags.task !== undefined && !/^[a-z0-9][a-z0-9-]{0,63}$/.test(flags.task)) throw Error('--task takes a task ID');
+  if ('last' in flags && !/^[1-9]\d{0,3}$/.test(flags.last ?? '')) throw Error('--last takes a whole number from 1 to 9999');
+  if ('task' in flags && !/^[a-z0-9][a-z0-9-]{0,63}$/.test(flags.task ?? '')) throw Error('--task takes a task ID');
   return { flags, args: positional };
 }
 
@@ -764,7 +807,13 @@ async function main() {
   const [command, ...rawArgs] = process.argv.slice(2);
   const { flags, args } = parseArgs(rawArgs);
   const config = await loadConfig(args.at(-1));
-  if (command === 'prepare') {
+  if (command === 'inspect-evidence') {
+    const spec = await readJson(args[0]);
+    spec.root = path.resolve(path.dirname(path.resolve(args[0])), spec.root);
+    const report = await inspectEvidence(spec, config);
+    console.log(JSON.stringify(report, null, 2));
+    if (report.status !== 'ready') process.exitCode = 1;
+  } else if (command === 'prepare') {
     const spec = await readJson(args[0]);
     spec.root = path.resolve(path.dirname(path.resolve(args[0])), spec.root);
     console.log(await prepare(spec, config));
@@ -820,7 +869,7 @@ async function main() {
         if (result.status === 'failed') process.exitCode = 1;
       } else throw Error('Plan commands: validate <plan>, show <plan>, graph <plan>, run <plan>, status [plan-run-id]');
     }
-  } else throw Error('Commands: prepare, run, status, cancel, plan, mode, build; final argument must be config.json');
+  } else throw Error('Commands: inspect-evidence, prepare, run, status, cancel, plan, mode, build; final argument must be config.json');
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url))

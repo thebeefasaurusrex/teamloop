@@ -115,6 +115,40 @@ test('run CLI prints a digest by default and the full record with --full', async
   assert.ok('overlay' in JSON.parse(full.stdout));
 });
 
+test('usage digest preserves reported counts without manufacturing missing counts', () => {
+  assert.deepEqual(digest({ usage: { total_tokens: 42 } }).usage, { total: 42 });
+  assert.deepEqual(digest({ usage: { prompt_tokens_details: { cached_tokens: 0 }, completion_tokens_details: { reasoning_tokens: 7 } } }).usage, {
+    cached: 0,
+    thinking: 7,
+  });
+  assert.equal('usage' in digest({ usage: {} }), false);
+});
+
+test('old active runs and in-scope failures remain visible beyond the history cap', () => {
+  const records = [
+    { runId: 'new', taskId: 'a', startedAt: '2026-10-05T00:00:00Z', status: 'completed' },
+    { runId: 'failure', taskId: 'a', startedAt: '2026-10-04T00:00:00Z', status: 'failed' },
+    { runId: 'foreign-failure', taskId: 'b', startedAt: '2026-10-03T00:00:00Z', status: 'failed' },
+    { runId: 'active', taskId: 'b', startedAt: '2026-10-02T00:00:00Z', status: 'running' },
+  ];
+  assert.deepEqual(
+    selectStatuses(records, { task: 'a', last: 1 }).map(r => r.runId),
+    ['new', 'failure', 'active'],
+  );
+  assert.deepEqual(
+    selectStatuses(records, { last: 1 }).map(r => r.runId),
+    ['new', 'failure', 'foreign-failure', 'active'],
+  );
+});
+
+test('status CLI rejects missing filter values and unknown flags', async () => {
+  const { configFile } = await fixture();
+  for (const flag of ['--task', '--last', '--typo']) {
+    const result = cli(configFile, 'status', flag);
+    assert.notEqual(result.status, 0);
+  }
+});
+
 test('plan run keeps NDJSON on stdout and writes a one-line digest to stderr', async () => {
   const { root, config, configFile, spec } = await fixture();
   const packet = await prepare(spec('plan-digest'), config);

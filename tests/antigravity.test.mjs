@@ -181,10 +181,11 @@ test('Antigravity completed packet review decodes and validates the packet hash'
   assert.throws(() => decode('gemini', lines([init, user, result]), 'wrong', model));
 });
 test('live stdout guard terminates the owned mock worker on prohibited activity', async () => {
+  // Allow child startup under a loaded CI host; these tests assert policy stops, not latency.
   const result = await execute(
     process.execPath,
     ['-e', 'console.log(JSON.stringify({event:"step_update",step_update:{step_type:"tool"}}));setInterval(()=>{},1000)'],
-    { env: cleanEnv(), timeoutMs: 3000, onStdoutLine: line => guardGeminiEvent(JSON.parse(line), model) },
+    { env: cleanEnv(), timeoutMs: 15000, onStdoutLine: line => guardGeminiEvent(JSON.parse(line), model) },
   );
   assert.equal(result.stopped, 'worker-policy-violation');
 });
@@ -192,7 +193,7 @@ test('live stdout guard classifies provider error steps without inventing tool a
   const result = await execute(
     process.execPath,
     ['-e', 'console.log(JSON.stringify({event:"step_update",step_update:{step_type:"error_message",state:"DONE"}}));setInterval(()=>{},1000)'],
-    { env: cleanEnv(), timeoutMs: 3000, onStdoutLine: line => guardGeminiEvent(JSON.parse(line), model) },
+    { env: cleanEnv(), timeoutMs: 15000, onStdoutLine: line => guardGeminiEvent(JSON.parse(line), model) },
   );
   assert.equal(result.stopped, 'worker-provider-error');
   assert.match(result.policyError, /model\/provider emitted an error step/);
@@ -203,7 +204,7 @@ test('live log guard terminates the owned mock worker on discovery fallback', as
   const script = `require('node:fs').writeFileSync(${JSON.stringify(logFile)},'Agent "team-loop-reviewer" not found, falling back to default');setInterval(()=>{},1000)`;
   const result = await execute(process.execPath, ['-e', script], {
     env: cleanEnv(),
-    timeoutMs: 3000,
+    timeoutMs: 15000,
     watchFile: logFile,
     checkWatchText: text => {
       if (/Agent "team-loop-reviewer" not found, falling back to default/.test(text)) throw Error('discovery failed');

@@ -14,6 +14,8 @@ Created by **Mark Salisbury with Codex**. Inspired by [Claudex Loop](https://git
 
 This is a **public preview**, extracted from a working personal setup. The portable core is tested with local fixtures. Live provider compatibility must be checked for your own account, CLI version, and platform. It is not a universal model leaderboard, a new chat app, or a claim of guaranteed token savings.
 
+The October 12 synchronization adds required-evidence manifests, deliberate line slices with parent-file integrity, and receipt visibility improvements. The author's local operating policy is **1.11.0, effective October 5, 2026**; that is a separate policy version, not this toolkit's package version or a universal model recommendation. See [portable and local capability boundaries](docs/LOCAL_CAPABILITY_BOUNDARIES.md) before treating field-study behavior as installed functionality.
+
 ## What is it, actually?
 
 | Part | What it does | What it is made of |

@@ -63,7 +63,7 @@ test('execution plan rejects shell-shaped stages, cycles, missing dependencies a
   await assert.rejects(resolveExecutionPlan(cycle, planFile, config), /cycle/);
 });
 
-test('scheduler respects dependencies, concurrency and one active stage per provider', async () => {
+test('scheduler respects dependencies, concurrency and one active stage per provider', { timeout: 15000 }, async () => {
   const root = await tempDir('teamloop-plan-scheduler-');
   const config = { stateRoot: path.join(root, 'state') };
   const packet = path.join(root, 'packet.json');
@@ -124,12 +124,21 @@ test('scheduler respects dependencies, concurrency and one active stage per prov
     maxActive = 0;
   const activeProviders = new Set(),
     order = [];
+  let releaseFirstPair;
+  const firstPair = new Promise(resolve => {
+    releaseFirstPair = resolve;
+  });
   const worker = async (_packet, provider, model) => {
     assert.equal(activeProviders.has(provider), false, 'same provider ran concurrently');
     activeProviders.add(provider);
     active++;
     maxActive = Math.max(maxActive, active);
     order.push('start:' + provider + '/' + model);
+    // Hold the first independent pair until both start. Disk latency must not decide concurrency.
+    if (model === 'one' && ['alpha', 'beta'].includes(provider)) {
+      if (active === 2) releaseFirstPair();
+      await firstPair;
+    }
     await new Promise(resolve => setTimeout(resolve, provider === 'beta' ? 10 : 20));
     active--;
     activeProviders.delete(provider);

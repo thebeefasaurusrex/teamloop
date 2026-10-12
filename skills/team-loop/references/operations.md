@@ -18,6 +18,7 @@ From the repository, use `node src/team-loop.mjs`. In an installed skill, use `n
 
 ```
 node src/team-loop.mjs prepare examples/task.json config/my.local.json
+node src/team-loop.mjs inspect-evidence examples/task.json config/my.local.json
 node src/team-loop.mjs run <packet.json> <provider> <model-id> <effort> [--full] config/my.local.json
 node src/team-loop.mjs status [--last <n>] [--task <id>] [--all] [--full] config/my.local.json
 node src/team-loop.mjs cancel <run-id> config/my.local.json
@@ -33,7 +34,7 @@ node src/team-loop.mjs mode standard <config.json>
 node src/team-loop.mjs build <builder-spec.json> <config.json>
 ```
 
-`run` and `status` print a digest by default: outcome, verdict, finding counts by severity, uncertainty count, elapsed time, normalized token usage, failure class, and the paths of the retained files. They never print the prompt, raw provider output, account fingerprint or execution-mode overlay; add `--full` to get the complete record. `status` shows the ten newest runs, newest first, plus any incomplete or corrupt records because those block dispatch; narrow with `--task <id>` or widen with `--last <n>` or `--all`. `plan run` keeps its NDJSON ledger on stdout and writes a one-line JSON summary of the plan run and each stage to stderr. Read a review from the `review.json` path the digest gives you and an artifact from its `.html` path; `artifact.json` is a duplicate of the HTML kept for integrity and costs a lead the same tokens again.
+`run` and `status` print a digest by default: outcome, verdict, finding counts by severity, uncertainty count, elapsed time, provider-reported token usage, failure class, and the paths of the retained files. They never print the prompt, raw provider output, account fingerprint or execution-mode overlay; add `--full` to get the complete record. Missing token fields stay absent. `status` shows the ten newest runs, newest first, plus incomplete/corrupt records, active runs, and failures in the requested scope even beyond the history cap; narrow with `--task <id>` or widen with `--last <n>` or `--all`. Active runs and records without usable task metadata remain visible across task filters. Unknown flags and missing filter values fail explicitly. `plan run` keeps its NDJSON ledger on stdout and writes a one-line JSON summary of the plan run and each stage to stderr. Read a review from the `review.json` path the digest gives you and an artifact from its `.html` path; `artifact.json` is a duplicate of the HTML kept for integrity and costs a lead the same tokens again.
 
 The installed wrapper uses `route` as its first argument followed by the same three JSON paths. You supply a roster file and an availability snapshot. The example roster is intentionally incomplete. Unconfigured or unavailable workers become visible unfilled roles, not hidden calls to another model. The installed `run.mjs` wrapper also accepts `mode` and `build` as its first argument, followed by the same arguments as the repository CLI forms above.
 
@@ -48,6 +49,26 @@ Plans are strict data, not scripts. Unknown fields fail validation. There is no 
 The plan runner writes one NDJSON object per lifecycle event to stdout and to `plan-runs/<plan-run-id>/events.ndjson` under `stateRoot`. The same directory retains a resolved `plan.json` snapshot and atomic `status.json`. Events contain plan and stage identity, status, worker-run pointers, packet hashes returned by the worker runner, verdict labels, and sanitized failure metadata. They do not contain packet source text, prompts, raw model output, credentials, or account identities. A terminal plan run still has `leadDecisionRequired: true`.
 
 `prepare` selects 1-16 text files up to 1 MiB each, caps the text packet at 2 MiB, and supports up to 8 explicitly named images, at most 10 MiB each and 40 MiB total. Sources are checked by hash before and after a run. Image header checks are type sanity checks, not malware scanning, OCR, or full decoding. Image transport is currently limited to Claude and NVIDIA, and must also be enabled in the specific model profile. NVIDIA has an additional 2 MiB image payload cap.
+
+### Required evidence and deliberate source slices
+
+An optional `evidenceManifest` binds requirement IDs to required text files or original inclusive line ranges. Only paths already listed in `files` are read. A missing declaration cannot silently expand the packet. `inspect-evidence` returns a compact local coverage report without preparing a packet or calling a provider; gaps exit nonzero. A `ready` report confirms mechanical coverage, not whether the evidence answers the question.
+
+```json
+{
+  "evidenceManifest": {
+    "version": 1,
+    "required": [
+      { "requirement": "R1", "path": "brief.md", "lines": { "startLine": 2, "endLine": 3 } }
+    ]
+  },
+  "sourceSlices": [
+    { "path": "brief.md", "startLine": 2, "endLine": 3, "reason": "Only this section supports R1; unrelated appendix omitted." }
+  ]
+}
+```
+
+These fields supplement a normal task spec. Omit `lines` to require the full file, which a smaller slice cannot satisfy. Optional `sha256` pins a required file to its expected whole-file hash. Slices retain original line numbers, selected and parent hashes, and an omission reason. Missing files, uncovered ranges, expected-hash drift, and known truncation markers block preparation. Dispatch rechecks the entire parent file, including bytes outside a slice, and rederives coverage to reject forged metadata. All selected parent files pass text screening before slicing. These checks cover text inputs, not semantic completeness, OCR, or image evidence coverage.
 
 `run` receives one provider and one model. It starts one owned worker process with an isolated run directory and a sanitized environment. No shell interpolation is used. One provider lock prevents concurrent runs against the same provider in the same state directory. Separate providers can run concurrently; the lead is responsible for the overall team budget.
 
