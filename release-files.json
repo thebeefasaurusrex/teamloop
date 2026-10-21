@@ -83,5 +83,7 @@
   "tests/public.test.mjs",
   "tests/release.test.mjs",
   "tests/shared.test.mjs",
-  "tests/team-loop.test.mjs"
+  "tests/team-loop.test.mjs",
+  "docs/UPDATE_2026-10-21.md",
+  "skills/team-loop-claude/SKILL.md"
 ]

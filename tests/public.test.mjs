@@ -166,6 +166,38 @@ test('clean install is self-contained, works from another cwd, and refuses overw
   assert.equal(ran.status, 0, ran.stderr);
   assert.equal(JSON.parse(ran.stdout).status, 'completed');
 });
+test('Claude Code host install uses the Claude lead skill, shares the runner, and rejects bad arguments', async () => {
+  const { root, config, spec } = await fixture();
+  const destination = path.join(root, 'claude-skill');
+  const installer = path.join(repo, 'scripts/install-skill.mjs');
+  const install = (...args) => spawnSync(process.execPath, [installer, ...args], { cwd: root, encoding: 'utf8', windowsHide: true });
+  const installed = install('--host', 'claude', '--dest', destination);
+  assert.equal(installed.status, 0, installed.stderr);
+  assert.equal(JSON.parse(installed.stdout).host, 'claude');
+  assert.deepEqual(await fs.readFile(path.join(destination, 'SKILL.md')), await fs.readFile(path.join(repo, 'skills/team-loop-claude/SKILL.md')));
+  assert.match(await fs.readFile(path.join(destination, 'SKILL.md'), 'utf8'), /Claude Code is the lead/);
+  assert.deepEqual(
+    await fs.readFile(path.join(destination, 'references/operations.md')),
+    await fs.readFile(path.join(repo, 'skills/team-loop/references/operations.md')),
+  );
+  assert.notEqual(install('--host', 'claude', '--dest', destination).status, 0);
+  assert.notEqual(install('--host', 'gemini', '--dest', path.join(root, 'other')).status, 0);
+  assert.notEqual(install('--dest').status, 0);
+  const taskFile = path.join(root, 'task.json');
+  const configFile = path.join(root, 'config.local.json');
+  await fs.writeFile(taskFile, JSON.stringify(spec));
+  await fs.writeFile(configFile, JSON.stringify(config));
+  const wrapper = path.join(destination, 'scripts/run.mjs');
+  const prepared = spawnSync(process.execPath, [wrapper, 'prepare', taskFile, configFile], { cwd: os.tmpdir(), encoding: 'utf8', windowsHide: true });
+  assert.equal(prepared.status, 0, prepared.stderr);
+  const ran = spawnSync(process.execPath, [wrapper, 'run', prepared.stdout.trim(), 'mock', 'fixture', configFile], {
+    cwd: os.tmpdir(),
+    encoding: 'utf8',
+    windowsHide: true,
+  });
+  assert.equal(ran.status, 0, ran.stderr);
+  assert.equal(JSON.parse(ran.stdout).status, 'completed');
+});
 test('changed images are rejected before transport reads and exact bytes are retained', async () => {
   const { root, config, spec } = await fixture();
   const bytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1]);

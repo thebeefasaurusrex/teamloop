@@ -2,6 +2,10 @@
 
 Public preview: `0.2.0-rc.2`. The initial preview `0.2.0-rc.1` was prepared and authorized for GitHub publication on 2026-09-21. Repository: [thebeefasaurusrex/teamloop](https://github.com/thebeefasaurusrex/teamloop).
 
+## October 21, 2026 synchronization
+
+The package version is unchanged. `scripts/install-skill.mjs --host claude` installs the skill into Claude Code with lead instructions for a Claude Code session (`skills/team-loop-claude/SKILL.md`); the runner, reference, packets and guardrails are shared with the Codex install. One installation test was added, bringing the suite from 108 to 109. Local-only display changes and a private configuration repair are recorded in the [October 21 change record](UPDATE_2026-10-21.md) and are not part of the portable runtime.
+
 ## October 12, 2026 synchronization
 
 The package version is unchanged. The public runtime now includes optional required-evidence manifests, `inspect-evidence`, deliberate line slices with parent-file hashes and coverage metadata, and preparation/dispatch gates for missing coverage, source drift, and known truncation markers. Existing compact receipts now preserve more provider-reported usage fields, expose active runs and in-scope failures beyond the history cap, and reject unknown or incomplete status flags. Thirteen software regression tests were added, bringing the suite from 95 to 108. Existing guard fixtures allow more child-start time under load, and the scheduler concurrency fixture now uses an explicit first-pair barrier instead of relying on 10/20 ms sleeps to overlap. The local policy version, `1.11.0` effective October 5, is documented separately from the portable package; private model adapters, automatic availability switching, remote worker integration, and experimental Fable behavior were not copied. See [capability boundaries](LOCAL_CAPABILITY_BOUNDARIES.md).
@@ -21,7 +25,7 @@ The package version is unchanged. The public runtime now includes optional requi
 
 ## Included
 
-Portable configuration, a role-based recommendation router, a typed multi-review execution plan, the derivative Node runner, a self-contained Codex skill installer, disabled-by-default live adapters, no-account demo, software regression tests, and a model-neutral evaluation kit.
+Portable configuration, a role-based recommendation router, a typed multi-review execution plan, the derivative Node runner, a self-contained skill installer for a Codex or Claude Code lead, disabled-by-default live adapters, no-account demo, software regression tests, and a model-neutral evaluation kit.
 
 The separate [brand reference kit](../brand/README.md) includes the selected identity, logo exports, fonts, usage rules and copy-ready AI briefs. Its font and artwork notes are distinct from the software license. The release includes the explicitly allowlisted files in `release-files.json`, not the private installation or its history.
 
@@ -29,7 +33,7 @@ The historical personal model roster and historical evaluation results are not r
 
 ## Verified locally
 
-Windows 11 with Node.js 22.18.0: 108 local software tests passed on October 12, 2026. They cover packet integrity, stale evidence, path exclusions, provider response parsing, forbidden tool events, timeouts, cancellation, output limits, explicit configuration, per-provider attempt budgets, lock contention, screening error labels, failure classification, isolated installation, overwrite refusal, typed plan validation, dependency scheduling, provider serialization, transitive failure propagation, unexpected scheduler recovery, lifecycle events, and the plan CLI. Release-check tests cover allowed binary signatures, invalid signatures, unsupported non-UTF8 input, credential screening and email screening. Binary signature checks do not validate an entire image/font format or prove an asset has no sensitive content. The demo exercises an actual local child-process round trip through a typed plan with a deterministic fixture. It makes no model or account calls.
+Windows 11 with Node.js 22.18.0: 109 local software tests passed on October 21, 2026 (108 on October 12). They cover packet integrity, stale evidence, path exclusions, provider response parsing, forbidden tool events, timeouts, cancellation, output limits, explicit configuration, per-provider attempt budgets, lock contention, screening error labels, failure classification, isolated installation, overwrite refusal, typed plan validation, dependency scheduling, provider serialization, transitive failure propagation, unexpected scheduler recovery, lifecycle events, and the plan CLI. Release-check tests cover allowed binary signatures, invalid signatures, unsupported non-UTF8 input, credential screening and email screening. Binary signature checks do not validate an entire image/font format or prove an asset has no sensitive content. The demo exercises an actual local child-process round trip through a typed plan with a deterministic fixture. It makes no model or account calls.
 
 An independent reviewer installed a disposable copy and exercised route, prepare, run, status and the attempt cap. Their initial findings led to corrections for missing model identity, raw metadata screening, frozen image transport and interrupted-run handling. A fresh independent install confirmed the original four findings were resolved. Its remaining status-listing issue was repaired and covered by a regression test. These are software release checks, not additional model-evaluation outcomes.
 

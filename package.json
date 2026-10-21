@@ -3,7 +3,7 @@
   "version": "0.2.0-rc.2",
   "license": "Apache-2.0",
   "private": true,
-  "description": "Local-first, Codex-led cross-model reviews with frozen context and explicit adjudication.",
+  "description": "Local-first cross-model reviews led from Codex or Claude Code, with frozen context and explicit adjudication.",
   "repository": {
     "type": "git",
     "url": "https://github.com/thebeefasaurusrex/teamloop.git"

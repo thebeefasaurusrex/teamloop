@@ -8,13 +8,13 @@
 
 **One conversation. A deliberately small team. Evidence before agreement.**
 
-TeamLoop is a local orchestration toolkit for using multiple AI subscriptions and optional specialist providers from a Codex-led workflow. It helps the lead decide when another model is worth involving, send it a focused brief, preserve what happened, and verify the useful parts before changing the project.
+TeamLoop is a local orchestration toolkit for using multiple AI subscriptions and optional specialist providers from a workflow led in Codex or Claude Code. It helps the lead decide when another model is worth involving, send it a focused brief, preserve what happened, and verify the useful parts before changing the project.
 
 Created by **Mark Salisbury with Codex**. Inspired by [Claudex Loop](https://github.com/chaseai-yt/claudex-loop), implemented as a separate system. The starting question was practical: how do I use the subscriptions I already pay for without becoming the human API between three chat windows?
 
 This is a **public preview**, extracted from a working personal setup. The portable core is tested with local fixtures. Live provider compatibility must be checked for your own account, CLI version, and platform. It is not a universal model leaderboard, a new chat app, or a claim of guaranteed token savings.
 
-The October 12 synchronization adds required-evidence manifests, deliberate line slices with parent-file integrity, and receipt visibility improvements. The author's local operating policy is **1.11.0, effective October 5, 2026**; that is a separate policy version, not this toolkit's package version or a universal model recommendation. See [portable and local capability boundaries](docs/LOCAL_CAPABILITY_BOUNDARIES.md) before treating field-study behavior as installed functionality.
+The October 21 synchronization adds Claude Code as a supported lead: the same runner, packets and guardrails, installed as a Claude Code skill. See the [October 21 change record](docs/UPDATE_2026-10-21.md). The October 12 synchronization added required-evidence manifests, deliberate line slices with parent-file integrity, and receipt visibility improvements. The author's local operating policy is **1.11.0, effective October 5, 2026**; that is a separate policy version, not this toolkit's package version or a universal model recommendation. See [portable and local capability boundaries](docs/LOCAL_CAPABILITY_BOUNDARIES.md) before treating field-study behavior as installed functionality.
 
 ## What is it, actually?
 
@@ -96,15 +96,16 @@ Third, the worker's structured output, validated against a schema bound to the p
 }
 ```
 
-## Use it from Codex
+## Use it from Codex or Claude Code
 
-Install the self-contained skill:
+Install the self-contained skill for the lead you use:
 
 ```sh
-node scripts/install-skill.mjs
+node scripts/install-skill.mjs                 # Codex lead
+node scripts/install-skill.mjs --host claude   # Claude Code lead
 ```
 
-By default this targets the `team-loop` folder in your Codex skills directory. **It refuses to overwrite an existing installation.** For a safe trial, use `--dest` with an explicit new folder. Load that skill in your Codex environment according to its local skill-discovery behavior. Installation does not log in or alter provider settings.
+By default this targets the `team-loop` folder in your Codex skills directory (`CODEX_HOME`, default `~/.codex`) or, with `--host claude`, your Claude Code skills directory (`CLAUDE_CONFIG_DIR`, default `~/.claude`). Both installs carry the same runner and operating reference; only the lead's instructions differ. The Claude Code lead prefers a reviewer from a different model family and does not use the Claude Bridge, which is a Codex-led builder path. **It refuses to overwrite an existing installation.** For a safe trial, use `--dest` with an explicit new folder. Load that skill in your Codex or Claude Code environment according to its local skill-discovery behavior. Installation does not log in or alter provider settings.
 
 Copy `config/providers.example.json` to a private `.local.json` file and configure only the providers you intend to use. All real providers ship disabled. Add verified model IDs and reasoning efforts to their allowlists. Copy the example roster to another `.local.json` file and choose the models for your roles. Account access, remaining capacity, and subscription entitlements are not inferred from a brand name.
 
