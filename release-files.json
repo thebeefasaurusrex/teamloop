@@ -85,5 +85,6 @@
   "tests/shared.test.mjs",
   "tests/team-loop.test.mjs",
   "docs/UPDATE_2026-10-21.md",
+  "docs/UPDATE_2026-10-22.md",
   "skills/team-loop-claude/SKILL.md"
 ]

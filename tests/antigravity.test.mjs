@@ -13,8 +13,15 @@ import {
   designerAgent,
   geminiInvocation,
   resolveUserHome,
+  geminiPrintTimedOut,
 } from '../src/antigravity.mjs';
 import { execute, cleanEnv, decode } from '../src/team-loop.mjs';
+
+test('CLI zero-exit SUCCESS with partial-output deadline is still a timeout', () => {
+  assert.equal(geminiPrintTimedOut({ code: 0, stderr: '[agy] print timeout after 2m55s with turn in progress; returning partial output\n' }), true);
+  assert.equal(geminiPrintTimedOut({ code: 0, stderr: '' }), false);
+  assert.equal(geminiPrintTimedOut({ stderr: 'ordinary diagnostic mentioning a timeout elsewhere' }), false);
+});
 import { tempDir } from './helpers.mjs';
 const model = 'example-model-medium';
 const init = { event: 'init', init: { model, agent: 'team-loop-reviewer', permission_mode: 'strict', tools: ['view_file'] } };
