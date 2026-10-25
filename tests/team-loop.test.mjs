@@ -295,3 +295,39 @@ test('policy and unknown-model gates happen before authentication', async () => 
   };
   await assert.rejects(run(packetFile, 'nvidia', 'example/model', apiConfig), /public or synthetic/);
 });
+
+test('Claude nonzero terminals retain allowlisted cause without exposing private payloads', async () => {
+  const { claudeTerminalFailure } = await import('../src/team-loop.mjs');
+  const terminal = {
+    type: 'result',
+    subtype: 'success',
+    is_error: true,
+    num_turns: 4,
+    result: "API Error: Claude's response exceeded the 128000 output token maximum. Untrusted trailing text.",
+  };
+  const stdout = [{ type: 'assistant', message: { content: [{ type: 'thinking', thinking: 'PRIVATE_THINKING_FIXTURE' }] } }, terminal]
+    .map(JSON.stringify)
+    .join('\n');
+  assert.deepEqual(claudeTerminalFailure(stdout), { kind: 'output-token-maximum', outputTokenMaximum: 128000, numTurns: 4 });
+  assert.equal(
+    workerFailure({ code: 1, stdout, stderr: 'startup warning' }, 'claude'),
+    'Claude terminal failure: response exceeded the 128000 output token maximum (worker exited 1)',
+  );
+  const unknown = JSON.stringify({ ...terminal, result: 'PRIVATE_TASK_FIXTURE', subtype: 'PRIVATE_SUBTYPE' });
+  assert.equal(workerFailure({ code: 1, stdout: unknown, stderr: '' }, 'claude'), 'Claude terminal failure (worker exited 1; native terminal marked error)');
+  assert.doesNotMatch(JSON.stringify(claudeTerminalFailure(unknown)), /PRIVATE/);
+  assert.equal(claudeTerminalFailure('malformed stream'), null);
+  assert.equal(claudeTerminalFailure(JSON.stringify({ ...terminal, is_error: false, result: 'valid' })), null);
+});
+test('native terminal inspection preserves policy, cancellation and timeout precedence', () => {
+  const stdout = JSON.stringify({
+    type: 'result',
+    subtype: 'success',
+    is_error: true,
+    result: "API Error: Claude's response exceeded the 2048 output token maximum.",
+  });
+  for (const stopped of ['cancelled', 'timeout']) assert.equal(workerFailure({ code: 1, stdout, stopped }, 'claude'), stopped);
+  assert.equal(workerFailure({ code: 1, stdout, policyError: 'worker-policy-violation' }, 'claude'), 'worker-policy-violation');
+  assert.equal(workerFailure({ code: 1, stdout, stderr: 'ordinary failure' }, 'codex'), 'Worker exited 1: ordinary failure');
+  assert.equal(workerFailure({ code: 1, stdout: '', stderr: '' }, 'claude'), 'Worker exited 1');
+});

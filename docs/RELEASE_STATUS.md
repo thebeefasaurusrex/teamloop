@@ -2,6 +2,10 @@
 
 Public preview: `0.2.0-rc.2`. The initial preview `0.2.0-rc.1` was prepared and authorized for GitHub publication on 2026-09-21. Repository: [thebeefasaurusrex/teamloop](https://github.com/thebeefasaurusrex/teamloop).
 
+## October 25, 2026 diagnostic correction
+
+Claude nonzero exits now preserve a recognized native output-token-limit cause in the error receipt. Unknown native error text is summarized without copying task or reasoning content. Policy, cancellation and timeout reasons retain priority; failed exits still cannot publish output. This is a diagnostic correction, not evidence that a provider or previously failed task recovered. The package version is unchanged.
+
 ## October 21, 2026 synchronization
 
 The package version is unchanged. `scripts/install-skill.mjs --host claude` installs the skill into Claude Code with lead instructions for a Claude Code session (`skills/team-loop-claude/SKILL.md`); the runner, reference, packets and guardrails are shared with the Codex install. One installation test was added, bringing the suite from 108 to 109. Local-only display changes and a private configuration repair are recorded in the [October 21 change record](UPDATE_2026-10-21.md) and are not part of the portable runtime.

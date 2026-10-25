@@ -173,9 +173,41 @@ export async function checkPacket(packet) {
   }
 }
 
-export function workerFailure(result) {
+// Only terminal envelope metadata is inspected here; never assistant thinking blocks.
+export function claudeTerminalFailure(stdout) {
+  let terminal;
+  for (const line of String(stdout ?? '')
+    .trim()
+    .split(/\r?\n/)
+    .reverse()) {
+    try {
+      const value = JSON.parse(line);
+      if (value?.type === 'result') {
+        terminal = value;
+        break;
+      }
+    } catch {}
+  }
+  if (!terminal || !(terminal.is_error || terminal.error || terminal.subtype !== 'success')) return null;
+  const maximum =
+    typeof terminal.result === 'string' ? terminal.result.match(/^API Error: Claude's response exceeded the ([0-9]{1,7}) output token maximum\./) : null;
+  // Unknown terminal text is deliberately not copied into receipts: it may contain private task text.
+  return {
+    kind: maximum ? 'output-token-maximum' : 'terminal-error',
+    ...(maximum ? { outputTokenMaximum: Number(maximum[1]) } : {}),
+    ...(Number.isSafeInteger(terminal.num_turns) ? { numTurns: terminal.num_turns } : {}),
+  };
+}
+export function workerFailure(result, provider) {
   if (result.policyError) return result.policyError;
   if (result.stopped) return result.stopped;
+  if (provider === 'claude') {
+    const native = claudeTerminalFailure(result.stdout);
+    if (native)
+      return native.kind === 'output-token-maximum'
+        ? `Claude terminal failure: response exceeded the ${native.outputTokenMaximum} output token maximum (worker exited ${result.code})`
+        : `Claude terminal failure (worker exited ${result.code}; native terminal marked error)`;
+  }
   const detail = String(result.stderr ?? '')
     .trim()
     .replace(/\s+/g, ' ')
@@ -654,7 +686,7 @@ export async function run(packetFile, provider, model, config, effort = 'default
       record.stopReason = 'timeout';
       throw Error('timeout');
     }
-    if (result.stopped || result.code !== 0) throw Error(workerFailure(result));
+    if (result.stopped || result.code !== 0) throw Error(workerFailure(result, provider));
     const decoded = decode(provider, result.stdout, packet.packetHash, model, kind, maxArtifactBytes ?? 131072);
     if (profile.resolvedModels && (!decoded.actualModel || !profile.resolvedModels.includes(decoded.actualModel)))
       throw Error('Provider-reported model does not match configured resolvedModels');
