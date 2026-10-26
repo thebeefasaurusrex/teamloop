@@ -200,3 +200,37 @@ test('design terminal exact identity, early overage and small raw completion are
   assert.throws(() => decode([init, rate, { ...result, result: JSON.stringify({ summary: 'x'.repeat(2049), uncertainties: [] }) }]));
   assert.throws(() => decode([init, rate, { ...result, result: '', structured_output: { summary: 'schema-only response', uncertainties: [] } }]));
 });
+
+test('actual design prompt discloses exact completion limits and raw JSON contract', async () => {
+  const f = await fixture();
+  const r = await runClaudeDesign(f.spec, f.config, { launch: f.launch });
+  assert.equal(r.status, 'completed', r.error);
+  const prompt = await fs.readFile(path.join(f.config.stateRoot, 'builder-runs', r.runId, 'prompt.txt'), 'utf8');
+  for (const value of ['2048 characters', '16 strings', '512 characters', '16384 UTF-8 bytes', 'No Markdown fences']) assert.ok(prompt.includes(value), value);
+  assert.equal(r.timeoutMs, 2700000);
+  assert.equal(r.promoted, false);
+});
+test('design completion boundaries remain strict for limits and Markdown fences', () => {
+  const root = path.resolve('selected-worktree'),
+    init = { type: 'system', subtype: 'init', model: 'claude-opus-5-5', tools: ['Read', 'Edit', 'Write'] },
+    rate = { type: 'rate_limit_event', rate_limit_info: { isUsingOverage: false, overageStatus: 'rejected' } },
+    terminal = { type: 'result', subtype: 'success', terminal_reason: 'completed', modelUsage: { 'claude-opus-5-5': {} } };
+  const decode = value =>
+    decodeClaudeBuilder(
+      [init, rate, { ...terminal, result: typeof value === 'string' ? value : JSON.stringify(value) }].map(JSON.stringify).join('\n'),
+      root,
+      'claude-opus-5-5',
+      [],
+      ['index.html'],
+      true,
+    );
+  decode({ summary: 'x'.repeat(2048), uncertainties: Array(16).fill('x'.repeat(512)) });
+  for (const value of [
+    { summary: 'x'.repeat(2049), uncertainties: [] },
+    { summary: 'ok', uncertainties: Array(17).fill('x') },
+    { summary: 'ok', uncertainties: ['x'.repeat(513)] },
+    { summary: 'ok', uncertainties: Array(16).fill('中'.repeat(512)) },
+  ])
+    assert.throws(() => decode(value), /small completion limits/);
+  assert.throws(() => decode('~~~json' + JSON.stringify({ summary: 'ok', uncertainties: [] }) + '~~~'));
+});

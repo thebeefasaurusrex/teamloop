@@ -18,7 +18,9 @@ import {
   redact,
 } from './shared.mjs';
 
-export const CLAUDE_BUILDER_VERSION = '1.0.3';
+export const CLAUDE_BUILDER_VERSION = '1.0.4';
+export const CLAUDE_DESIGN_COMPLETION_LIMITS = Object.freeze({ summaryChars: 2048, uncertainties: 16, uncertaintyChars: 512, jsonBytes: 16384 });
+export const claudeDesignCompletionInstructions = `Return exactly one raw JSON object with only summary and uncertainties. No Markdown fences, headings or prose outside JSON. The summary must be at most ${CLAUDE_DESIGN_COMPLETION_LIMITS.summaryChars} characters; uncertainties at most ${CLAUDE_DESIGN_COMPLETION_LIMITS.uncertainties} strings, each at most ${CLAUDE_DESIGN_COMPLETION_LIMITS.uncertaintyChars} characters. The entire JSON must fit within ${CLAUDE_DESIGN_COMPLETION_LIMITS.jsonBytes} UTF-8 bytes. Describe saved files briefly; do not include artifact contents.`;
 const allowedTools = new Set(['Read', 'Edit', 'Write', 'StructuredOutput']);
 
 export function cleanClaudeBuilderEnv(original = process.env) {
@@ -263,10 +265,10 @@ export function decodeClaudeBuilder(output, worktree, requestedModel, allowedAux
   if (!wellFormed) throw Error('Claude builder returned invalid structured output');
   if (
     design &&
-    (Buffer.byteLength(JSON.stringify(value)) > 16384 ||
-      value.summary.length > 2048 ||
-      value.uncertainties.length > 16 ||
-      value.uncertainties.some(item => item.length > 512))
+    (Buffer.byteLength(JSON.stringify(value)) > CLAUDE_DESIGN_COMPLETION_LIMITS.jsonBytes ||
+      value.summary.length > CLAUDE_DESIGN_COMPLETION_LIMITS.summaryChars ||
+      value.uncertainties.length > CLAUDE_DESIGN_COMPLETION_LIMITS.uncertainties ||
+      value.uncertainties.some(item => item.length > CLAUDE_DESIGN_COMPLETION_LIMITS.uncertaintyChars))
   )
     throw Error('Design final summary exceeds small completion limits');
   return {
@@ -407,7 +409,9 @@ async function runBoundedClaude(spec, config, { design = false, launch = execute
     const prompt =
       builderPrompt(spec, worktree) +
       (design
-        ? '\nDesign role: write complete usable artifacts to the selected files. Save durable progress in an explicitly selected progress file when one is listed, and save usable work as you go. The file is the deliverable; never serialize a whole HTML artifact in your final response. Use the full available 45-minute ceiling when needed. After saving, return only a small JSON object {"summary":"what changed","uncertainties":[]}. No StructuredOutput or completion tool replaces that required final response.'
+        ? '\nDesign role: write complete usable artifacts to the selected files. Save durable progress in an explicitly selected progress file when one is listed, and save usable work as you go. The file is the deliverable; never serialize a whole HTML artifact in your final response. Use the full available 45-minute ceiling when needed. After saving, return only a small JSON object {"summary":"what changed","uncertainties":[]}. No StructuredOutput or completion tool replaces that required final response.' +
+          '\n' +
+          claudeDesignCompletionInstructions
         : '');
     await fs.writeFile(path.join(runDir, 'prompt.txt'), prompt);
     const args = [
