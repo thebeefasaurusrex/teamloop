@@ -86,5 +86,7 @@
   "tests/team-loop.test.mjs",
   "docs/UPDATE_2026-10-21.md",
   "docs/UPDATE_2026-10-22.md",
+  "docs/UPDATE_2026-10-25.md",
+  "evals/results/original-replay-2026-10-25.csv",
   "skills/team-loop-claude/SKILL.md"
 ]

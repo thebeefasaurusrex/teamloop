@@ -4,6 +4,8 @@ Public preview: `0.2.0-rc.2`. The initial preview `0.2.0-rc.1` was prepared and 
 
 ## October 25, 2026 diagnostic correction
 
+The [October 25 evidence update](UPDATE_2026-10-25.md) publishes the 29-attempt short screen, all 65 original-replay primary outcomes in a sanitized CSV, Claude failure/recovery findings, the OpenAI file-plus-JavaScript pilot and four matched Haiku/6.1 feature results. It links nine unchanged runnable examples on Frontier Field Notes. Local policy `1.12.0` selects GPT-6.1 Sol Medium as lead and excludes GPT-6 Sol from active routing by operator decision. Portable model defaults and runtime capabilities are unchanged by this documentation update; the experimental benchmark harness is not shipped. Package version remains `0.2.0-rc.2`.
+
 Claude nonzero exits now preserve a recognized native output-token-limit cause in the error receipt. Unknown native error text is summarized without copying task or reasoning content. Policy, cancellation and timeout reasons retain priority; failed exits still cannot publish output. This is a diagnostic correction, not evidence that a provider or previously failed task recovered. The package version is unchanged.
 
 ## October 21, 2026 synchronization

@@ -1,12 +1,16 @@
 # Portable toolkit and local operating policy
 
-Updated October 21, 2026. Package version remains `0.2.0-rc.2`. The author's personal operating policy is `1.11.0`, effective October 5, 2026. These version numbers describe different systems.
+Updated October 25, 2026. Package version remains `0.2.0-rc.2`. The author's personal operating policy is `1.12.0`, effective October 25, 2026. These version numbers describe different systems.
 
 The [field notes](https://frontier-model-routing-field-notes.netlify.app/) report the author's local setup, experiments, and decisions. This repository is a selected portable derivative. A model's appearance in those notes does not enable it here or establish compatibility for another account.
 
 ## Included in the October 21 synchronization
 
 - Claude Code as a supported lead: `install-skill.mjs --host claude` installs the same runner and reference with Claude Code lead instructions. Codex remains the default host.
+
+## October 25 evidence update
+
+The [dated results](UPDATE_2026-10-25.md) report the original benchmark replay, qualified Claude delivery failures, separate recovery pilots and matched Haiku versus 6.1 feature trial. The operator selected GPT-6.1 Sol Medium as local lead and excluded GPT-6 Sol from active routing. No automatic Haiku promotion followed. These are local operating decisions and measured historical evidence, not portable defaults or newly supported provider capabilities.
 
 ## Included in the October 12 synchronization
 
@@ -22,7 +26,8 @@ Compact receipts themselves were already present in the September 24 public base
 | Local capability or decision | Public toolkit boundary |
 | --- | --- |
 | Frozen, classified one-time subscription availability switch | The public runner and execution plans still have no automatic retry or provider substitution. |
-| Current role assignments, including Sol 6 Medium and the DeepSeek engineering specialist | Public routing remains driven by the adopter's explicit roster. No private lineup or new provider adapter was copied. |
+| Current role assignments, including GPT-6.1 Sol Medium lead, GPT-6 Sol exclusion and the DeepSeek engineering specialist | Public routing remains driven by the adopter's explicit roster. No private lineup or new provider adapter was copied. |
+| Experimental file-backed benchmark recovery with shared Read/Write/Edit/Compute | Not included as a general worker mode. The public reviewer stays completion-only; Claude Bridge retains its separately bounded opt-in builder contract. No verified native Claude continuation fix is claimed. |
 | Experimental Fable creative selection and returned-model identity guards | No Fable-specific dispatch route, activation flag, or compatibility claim was added. |
 | Tool routing and remote deterministic worker placement | No private tool registry, worker address, remote execution integration, or machine configuration is included. |
 | Local observation display (reviewer-to-lead room placement, plain activity labels, Claude Code sessions) | Not included. The display reads the author's private session records; the portable runner has no display. |

@@ -1,0 +1,66 @@
+task,model,effort,primaryStatus,primaryQuality,reliabilityAdjustedPrimary,primaryGate,repairStatus,repairQuality,repairGate
+design-ops-command-center,gpt-6.1-sol,default,completed,92,92,N/A,,,N/A
+design-ops-command-center,gpt-6-sol,default,completed,87,87,N/A,,,N/A
+design-ops-command-center,gpt-6-luna,default,completed,77,77,N/A,,,N/A
+design-ops-command-center,claude-opus-5-5,default,completed,94,94,N/A,,,N/A
+design-ops-command-center,claude-sonnet-5-5,default,completed,87,87,N/A,,,N/A
+design-ops-command-center,claude-haiku-5-5,default,completed,85,85,N/A,,,N/A
+design-renovation-estimator,gpt-6.1-sol,default,completed,44,44,N/A,,,N/A
+design-renovation-estimator,gpt-6-sol,default,completed,88,88,N/A,,,N/A
+design-renovation-estimator,gpt-6-luna,default,completed,74,74,N/A,,,N/A
+design-renovation-estimator,claude-opus-5-5,default,completed,96,96,N/A,,,N/A
+design-renovation-estimator,claude-sonnet-5-5,default,completed,86,86,N/A,,,N/A
+design-renovation-estimator,claude-haiku-5-5,default,completed,90,90,N/A,,,N/A
+design-team-loop-console,gpt-6.1-sol,default,completed,96,96,N/A,,,N/A
+design-team-loop-console,gpt-6-sol,default,completed,90,90,N/A,,,N/A
+design-team-loop-console,gpt-6-luna,default,completed,86,86,N/A,,,N/A
+design-team-loop-console,claude-opus-5-5,default,completed,93,93,N/A,,,N/A
+design-team-loop-console,claude-sonnet-5-5,default,completed,81,81,N/A,,,N/A
+design-team-loop-console,claude-haiku-5-5,default,completed,87,87,N/A,,,N/A
+assisted-agent-fleet,gpt-6.1-sol,high,completed,46,46,Fail,completed,93,Pass
+assisted-agent-fleet,gpt-6-sol,high,completed,84,84,Pass,,,
+assisted-agent-fleet,gpt-6-luna,high,completed,59,59,Fail,completed,62,Fail
+assisted-agent-fleet,claude-opus-5-5,high,timed_out,,0,Not delivered,,,
+assisted-agent-fleet,claude-sonnet-5-5,high,timed_out,,0,Not delivered,,,
+assisted-agent-fleet,claude-haiku-5-5,high,failed,,0,Not delivered,,,
+assisted-failure-simulator,gpt-6.1-sol,high,completed,92,92,Pass,,,
+assisted-failure-simulator,gpt-6-sol,high,completed,84,84,Pass,,,
+assisted-failure-simulator,gpt-6-luna,high,completed,37,37,Fail,completed,31,Fail
+assisted-failure-simulator,claude-opus-5-5,high,timed_out,,0,Not delivered,,,
+assisted-failure-simulator,claude-sonnet-5-5,high,timed_out,,0,Not delivered,,,
+assisted-failure-simulator,claude-haiku-5-5,high,failed,,0,Not delivered,,,
+assisted-futures-lab,gpt-6.1-sol,high,completed,92,92,Pass,,,
+assisted-futures-lab,gpt-6-sol,high,completed,84,84,Fail,completed,84,Fail
+assisted-futures-lab,gpt-6-luna,high,completed,74,74,Pass,,,
+assisted-futures-lab,claude-opus-5-5,high,timed_out,,0,Not delivered,,,
+assisted-futures-lab,claude-sonnet-5-5,high,completed,88,88,Pass (adjudicated lens probe),,,
+assisted-futures-lab,claude-haiku-5-5,high,failed,,0,Not delivered,,,
+assisted-design-direction,gpt-6.1-sol,high,completed,96.5,96.5,Pass,,,
+assisted-design-direction,gpt-6-sol,high,completed,90.0,90.0,Fail,completed,86,Pass
+assisted-design-direction,gpt-6-luna,high,completed,83.0,83.0,Fail,completed,85.5,Pass
+assisted-design-direction,claude-opus-5-5,high,completed,89.5,89.5,Fail,completed,95.0,Pass
+assisted-design-direction,claude-sonnet-5-5,high,completed,91.0,91.0,Fail,completed,94.0,Pass
+assisted-design-direction,claude-haiku-5-5,high,completed,89.0,89.0,Fail,completed,92.5,Pass
+design-ops-command-center,gpt-5.6-sol,default,completed,83,83,N/A,,,N/A
+design-ops-command-center,claude-sonnet-5,default,completed,81,81,N/A,,,N/A
+design-renovation-estimator,gpt-5.6-sol,default,completed,81,81,N/A,,,N/A
+design-renovation-estimator,claude-sonnet-5,default,completed,85,85,N/A,,,N/A
+design-team-loop-console,gpt-5.6-sol,default,completed,84,84,N/A,,,N/A
+design-team-loop-console,claude-sonnet-5,default,completed,88,88,N/A,,,N/A
+assisted-agent-fleet,gpt-5.6-sol,high,completed,72,72,Pass,,,
+assisted-agent-fleet,claude-sonnet-5,high,completed,29,29,Fail,completed,63,Fail
+assisted-failure-simulator,gpt-5.6-sol,high,completed,69,69,Fail,completed,74,Fail
+assisted-failure-simulator,claude-sonnet-5,high,timed_out,,0,Not delivered,,,
+assisted-futures-lab,gpt-5.6-sol,high,completed,89,89,Pass (adjudicated lens probe),,,
+assisted-futures-lab,claude-sonnet-5,high,timed_out,,0,Not delivered,,,
+assisted-design-direction,gpt-5.6-sol,high,completed,89.0,89.0,Fail,completed,91.5,Pass
+assisted-design-direction,claude-sonnet-5,high,completed,78.0,78.0,Fail,completed,78.0,Fail
+specialist-glm-task-surface-lab,gpt-6.1-sol,high,completed,94.0,94.0,N/A,,,N/A
+specialist-glm-task-surface-lab,gpt-6-sol,high,completed,78.5,78.5,N/A,,,N/A
+specialist-glm-task-surface-lab,gpt-5.6-sol,high,completed,80.5,80.5,N/A,,,N/A
+specialist-glm-task-surface-lab,claude-opus-5-5,high,completed,79.0,79.0,N/A,,,N/A
+specialist-nemotron-vs-opus-task-surface-audit,claude-opus-5-5,high,completed,66,66,N/A,,,N/A
+specialist-nemotron-vs-opus-task-surface-audit,claude-sonnet-5-5,high,completed,70,70,N/A,,,N/A
+specialist-muse-vs-sonnet-starforge-assisted-webp,claude-opus-5-5,high,completed,84,84,N/A,,,N/A
+specialist-muse-vs-sonnet-starforge-assisted-webp,claude-sonnet-5-5,high,completed,73,73,N/A,,,N/A
+specialist-muse-vs-sonnet-starforge-assisted-webp,claude-sonnet-5,high,completed,29,29,N/A,,,N/A

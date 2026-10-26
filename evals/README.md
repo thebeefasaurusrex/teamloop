@@ -2,6 +2,8 @@
 
 This kit is for a small, honest practitioner trial. It is not a scientifically rigorous benchmark and does not ship a recommended model ranking. The [public field notes](https://frontier-model-routing-field-notes.netlify.app/) describe the author's historical experiment. The fixtures here are new examples, not its original frozen prompts, private logs, or scores.
 
+The separately labeled [October 25 measured results](../docs/UPDATE_2026-10-25.md) and [65-row original-replay export](results/original-replay-2026-10-25.csv) are historical evidence, not kit fixtures or inputs to `summarize.mjs`. Their cohort contracts, failure qualifications, separate repairs and AI-assisted scoring limits travel with the results. No private run identifiers or raw prompts are included.
+
 ## Freeze the question first
 
 Choose a task from real work that your team is authorized to share. Name the decision the result should improve: fewer missed defects, clearer designs, faster verification, or less lead-model reading. Do not start with a leaderboard and look for a task that produces one.
