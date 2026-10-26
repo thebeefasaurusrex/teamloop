@@ -72,3 +72,9 @@ The existing personal skill/runtime was not modified. The public repository uses
 Status JSON is published by temporary file plus rename. An interrupted directory with no status is ignored during budget enumeration because this runner writes its first status before authenticating or dispatching. An existing malformed status instead fails closed with a reconciliation message. Reconcile that one record against retained logs before recovery; do not delete spending evidence to unblock another attempt. This is intentional caution, not automatic corruption repair.
 
 Plan runs retain a frozen plan snapshot, atomically updated status and an append-only lifecycle event file. Required stage failures cancel their dependents and fail the plan. Advisory failures remain visible while independent or downstream work may continue. The runner never retries or substitutes a failed stage automatically.
+
+## Later October 25 specialist activation
+
+The operator explicitly authorized policy 1.13.0 and a separate selected Opus 5.5 High file-backed design path with 45minutes. Sonnet 5.5 High remains the pinned critic,6.1 Medium lead, and GPT-6 Sol excluded locally. The design command is now supported by the portable runtime but ships disabled in its example config. The historical benchmark Compute transport remains excluded. See the activation addendum in the dated results. Fixture and live smoke outcomes are separate compatibility evidence, not additional benchmark scores.
+
+Activation checks: 122 portable software tests, 89 local route/identity/dispatch checks, release screening and formatting. Two exact-identity live compatibility smokes succeeded; one earlier cloud-sync environment failure was retained. These do not add benchmark scores or prove arbitrary large-design success.

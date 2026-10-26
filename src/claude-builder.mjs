@@ -32,7 +32,7 @@ function unsafeText(value, blockedLiterals) {
   return blockedLiterals.some(literal => lower.includes(literal.toLowerCase()));
 }
 
-function validateSpec(spec, config) {
+function validateSpec(spec, config, design = false) {
   const blockedLiterals = config.blockedLiterals ?? [];
   if (spec?.schemaVersion !== 1 || typeof spec.id !== 'string' || !/^[a-z0-9][a-z0-9-]{0,63}$/.test(spec.id)) throw Error('Invalid Claude builder spec');
   if (typeof spec.repository !== 'string' || !path.isAbsolute(spec.repository) || denyPath.test(spec.repository))
@@ -58,13 +58,14 @@ function validateSpec(spec, config) {
       file.includes('\0') ||
       /[*?\[\]]/.test(file) ||
       denyPath.test(file) ||
-      file.split(/[\\/]/).includes('..')
+      file.split(/[\\/]/).includes('..') ||
+      (design && (file.includes(':') || file.split(/[\\/]/).some(part => !part || part === '.')))
     )
       throw Error('Unsafe builder file allowlist');
   }
   if (!['private', 'public', 'synthetic'].includes(spec.dataClass)) throw Error('Builder dataClass must be private, public, or synthetic');
-  if (!Number.isSafeInteger(spec.timeoutMs) || spec.timeoutMs < 30000 || spec.timeoutMs > 900000)
-    throw Error('Builder timeout must be 30000-900000 milliseconds');
+  if (!Number.isSafeInteger(spec.timeoutMs) || spec.timeoutMs < 30000 || spec.timeoutMs > (design ? 2700000 : 900000))
+    throw Error('Builder timeout outside the permitted 30000-' + (design ? 2700000 : 900000) + ' milliseconds');
   if (!Array.isArray(spec.verification) || !spec.verification.length || spec.verification.length > 8)
     throw Error('Builder needs 1-8 deterministic verification commands');
   const executableAllowlist = new Set(config.claudeBridge?.verificationExecutables ?? []);
@@ -77,7 +78,7 @@ function validateSpec(spec, config) {
   return spec;
 }
 
-async function claudeIdentity(config, env) {
+async function claudeIdentity(config, env, launch = execute) {
   const bridge = config.claudeBridge ?? {};
   const plans = bridge.allowedPlanAttestations;
   if (!Array.isArray(plans) || !plans.length || plans.some(plan => typeof plan !== 'string' || !plan.trim()))
@@ -85,8 +86,9 @@ async function claudeIdentity(config, env) {
   if (config.claudeUsageCreditsOff !== true || !plans.includes(config.claudePlanAttested) || !recentAttestation(config.billingCheckedAt)) {
     throw Error(`Fresh plan attestation (one of: ${plans.join(', ')}) and usage-credit-off attestation required within the preceding 24 hours`);
   }
-  const output = await checked(config.claude, ['auth', 'status', '--json'], { env, timeoutMs: 15000 }, 'Claude authentication check');
-  const value = JSON.parse(output);
+  const auth = await launch(config.claude, ['auth', 'status', '--json'], { env, timeoutMs: 15000 });
+  if (auth.code !== 0 || auth.stopped) throw Error('Claude authentication check failed');
+  const value = JSON.parse(auth.stdout);
   const accounts = bridge.allowedAccounts ?? [];
   if (
     !value.loggedIn ||
@@ -127,18 +129,109 @@ function inspectToolPath(worktree, value, selectedFiles) {
   if (!selectedFiles.has(relative)) throw Error('Claude accessed a file outside the explicit selection: ' + relative);
 }
 
-export function decodeClaudeBuilder(output, worktree, requestedModel, allowedAuxiliaryModels = [], selectedFiles = []) {
+export function inspectClaudeDesignEvent(event, worktree, selectedFiles) {
+  const model = 'claude-opus-5-5';
+  const selected = new Set(selectedFiles.map(file => file.split(/[\\/]/).join('/')));
+  if ((event.model && event.model !== model) || (event.type === 'assistant' && event.message?.model !== model))
+    throw Error('Design model identity missing or mismatched');
+  if (
+    event.type === 'system' &&
+    event.subtype === 'init' &&
+    (event.model !== model || !Array.isArray(event.tools) || event.tools.some(tool => !['Read', 'Write', 'Edit', 'EndConversation'].includes(tool)))
+  )
+    throw Error('Design init inventory or identity mismatch');
+  if (event.type === 'assistant')
+    for (const block of event.message?.content ?? [])
+      if (block.type === 'tool_use') {
+        if (!['Read', 'Write', 'Edit', 'EndConversation'].includes(block.name)) throw Error('Design prohibited tool: ' + block.name);
+        if (block.name !== 'EndConversation') {
+          if (typeof block.input?.file_path !== 'string' || !block.input.file_path.trim()) throw Error('Design file tool requires explicit file_path');
+          inspectToolPath(worktree, block.input.file_path, selected);
+          if (['path', 'command', 'url', 'notebook_path'].some(key => Object.hasOwn(block.input ?? {}, key)))
+            throw Error('Design unexpected operational argument');
+        }
+      }
+  if (event.type === 'rate_limit_event' && (event.rate_limit_info?.isUsingOverage !== false || event.rate_limit_info?.overageStatus !== 'rejected'))
+    throw Error('Design overage not rejected');
+  if (event.type === 'result' && (event.permission_denials?.length || Object.values(event.usage?.server_tool_use ?? {}).some(value => value > 0)))
+    throw Error('Design denied/server tool use');
+}
+
+async function verifyDesignFiles(worktree, selectedFiles) {
+  for (const file of selectedFiles) {
+    for (let current = path.resolve(worktree, file); containedOrEqual(worktree, current); current = path.dirname(current)) {
+      let stat;
+      try {
+        stat = await fs.lstat(current);
+      } catch (error) {
+        if (error.code === 'ENOENT') {
+          if (current === worktree) throw error;
+          continue;
+        }
+        throw error;
+      }
+      if (stat.isSymbolicLink() || (stat.isFile() && stat.nlink !== 1) || path.resolve(await fs.realpath(current)) !== current)
+        throw Error('Design selected path link/alias rejected');
+      if (current === worktree) break;
+    }
+  }
+}
+
+/** Design artifacts must not inherit sync-client hardlinks from the evidence directory. */
+export async function prepareClaudeDesignWorktreeRoot(config) {
+  const explicit = config.claudeDesign?.worktreeRoot;
+  const selected = explicit ?? path.join(os.tmpdir(), 'teamloop-design-worktrees');
+  if (typeof selected !== 'string' || !path.isAbsolute(selected) || denyPath.test(selected))
+    throw Error('Design worktreeRoot must be a safe absolute physical path');
+  const requested = path.resolve(selected);
+  if (requested === path.parse(requested).root || requested === path.resolve(os.homedir())) throw Error('Unsafe design worktreeRoot');
+  for (let current = requested; ; current = path.dirname(current)) {
+    try {
+      const stat = await fs.lstat(current);
+      if (stat.isSymbolicLink() || !stat.isDirectory()) throw Error('Design worktreeRoot ancestor is a link or not a directory');
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+    }
+    if (current === path.dirname(current)) break;
+  }
+  await fs.mkdir(requested, { recursive: true });
+  const physical = path.resolve(await fs.realpath(requested));
+  if (explicit !== undefined && physical !== requested) throw Error('Design worktreeRoot must name its canonical physical path, not a filesystem alias');
+  return physical;
+}
+
+export function decodeClaudeBuilder(output, worktree, requestedModel, allowedAuxiliaryModels = [], selectedFiles = [], design = false) {
   const events = output
     .trim()
     .split(/\r?\n/)
     .filter(Boolean)
     .map(line => JSON.parse(line));
   const selected = new Set(selectedFiles.map(file => file.split(/[\\/]/).join('/')));
+  if (design) for (const event of events) inspectClaudeDesignEvent(event, worktree, selectedFiles);
+  if (design) {
+    const init = events.find(event => event.type === 'system' && event.subtype === 'init');
+    if (
+      !init ||
+      init.model !== requestedModel ||
+      !Array.isArray(init.tools) ||
+      init.tools.some(tool => !['Read', 'Write', 'Edit', 'EndConversation'].includes(tool))
+    )
+      throw Error('Design requires exact pinned init identity and bounded file-tool inventory');
+    for (const event of events) {
+      if ((event.model && event.model !== requestedModel) || (event.type === 'assistant' && event.message?.model !== requestedModel))
+        throw Error('Design main assistant model identity missing or mismatched');
+      if (event.type === 'rate_limit_event' && (event.rate_limit_info?.isUsingOverage !== false || event.rate_limit_info?.overageStatus !== 'rejected'))
+        throw Error('Design overage evidence not rejected');
+    }
+  }
   for (const event of events) {
     if (event.type !== 'assistant') continue;
     for (const block of event.message?.content ?? []) {
       if (block.type !== 'tool_use') continue;
-      if (!allowedTools.has(block.name)) throw Error('Claude used a prohibited tool: ' + block.name);
+      if (design ? !['Read', 'Write', 'Edit', 'EndConversation'].includes(block.name) : !allowedTools.has(block.name))
+        throw Error('Claude used a prohibited tool: ' + block.name);
+      if (design && ['Read', 'Write', 'Edit'].includes(block.name) && (typeof block.input?.file_path !== 'string' || !block.input.file_path.trim()))
+        throw Error('Design file tool requires an explicit selected file_path');
       for (const key of ['file_path', 'path', 'notebook_path']) inspectToolPath(worktree, block.input?.[key], selected);
     }
   }
@@ -151,13 +244,15 @@ export function decodeClaudeBuilder(output, worktree, requestedModel, allowedAux
   if ((result.permission_denials?.length ?? 0) > 0) throw Error('Claude attempted a denied tool');
   if (Object.values(result.usage?.server_tool_use ?? {}).some(value => value > 0)) throw Error('Claude builder used a server tool');
   const actualModels = Object.keys(result.modelUsage ?? {});
+  if (design && ((result.model && result.model !== requestedModel) || !actualModels.length || actualModels.some(model => model !== requestedModel)))
+    throw Error('Design terminal pinned model missing or mismatched');
   const requested = requestedModel.toLowerCase();
   if (!actualModels.some(model => model.toLowerCase().includes(requested))) throw Error('Claude builder did not report the requested model family');
   for (const model of actualModels) {
     if (!model.toLowerCase().includes(requested) && !allowedAuxiliaryModels.some(prefix => model.startsWith(prefix)))
       throw Error('Claude builder reported an unapproved auxiliary or fallback model: ' + model);
   }
-  const value = result.structured_output ?? JSON.parse(result.result ?? '');
+  const value = design ? JSON.parse(result.result ?? '') : (result.structured_output ?? JSON.parse(result.result ?? ''));
   const wellFormed =
     value &&
     typeof value.summary === 'string' &&
@@ -166,6 +261,14 @@ export function decodeClaudeBuilder(output, worktree, requestedModel, allowedAux
     value.uncertainties.every(item => typeof item === 'string') &&
     Object.keys(value).every(key => ['summary', 'uncertainties'].includes(key));
   if (!wellFormed) throw Error('Claude builder returned invalid structured output');
+  if (
+    design &&
+    (Buffer.byteLength(JSON.stringify(value)) > 16384 ||
+      value.summary.length > 2048 ||
+      value.uncertainties.length > 16 ||
+      value.uncertainties.some(item => item.length > 512))
+  )
+    throw Error('Design final summary exceeds small completion limits');
   return {
     result: value,
     usage: result.usage ?? null,
@@ -217,14 +320,39 @@ function builderPrompt(spec, worktree) {
 }
 
 export async function runClaudeBuilder(spec, config) {
-  validateSpec(spec, config);
-  const mode = await resolveExecutionMode(config);
-  if (mode.effectiveMode !== 'claude-bridge' || mode.overlay?.provider !== 'claude' || mode.overlay.builderVersion !== CLAUDE_BUILDER_VERSION)
+  return runBoundedClaude(spec, config);
+}
+
+/** Standalone explicitly selected design path; never activates the legacy bridge. */
+export async function runClaudeDesign(spec, config, { launch = execute } = {}) {
+  const design = config.claudeDesign;
+  if (design?.enabled !== true || design.model !== 'claude-opus-5-5' || design.effort !== 'high' || design.timeoutMs !== 2700000)
+    throw Error('Claude design requires explicit enabled Opus5.5/high/45-minute profile');
+  if (config.providers) {
+    const provider = config.providers.claude;
+    if (provider?.enabled !== true || !provider.models?.[design.model]?.efforts?.includes('high'))
+      throw Error('Claude provider/model/high effort is not explicitly enabled');
+    if (!design.allowedAccounts?.length || design.allowedAccounts.some(account => !provider.allowedAccounts?.includes(account)))
+      throw Error('Design accounts must belong to the configured provider allowlist');
+  }
+  const selected = { ...config, claudeBridge: { ...config.claudeBridge, ...design } };
+  const selectedSpec = { ...spec, timeoutMs: spec?.timeoutMs ?? 2700000 };
+  if (selectedSpec.timeoutMs !== 2700000) throw Error('Claude design requires the full 2700000 millisecond window');
+  return runBoundedClaude(selectedSpec, selected, { design: true, launch });
+}
+
+async function runBoundedClaude(spec, config, { design = false, launch = execute } = {}) {
+  validateSpec(spec, config, design);
+  const mode = design
+    ? { requestedMode: 'claude-design', effectiveMode: 'claude-design', standardPolicyVersion: config.standardPolicyVersion }
+    : await resolveExecutionMode(config);
+  if (!design && (mode.effectiveMode !== 'claude-bridge' || mode.overlay?.provider !== 'claude' || mode.overlay.builderVersion !== CLAUDE_BUILDER_VERSION))
     throw Error('Claude builder requires the active validated claude-bridge mode');
   const stateRoot = path.resolve(config.stateRoot);
   const runId = randomUUID();
   const runDir = path.join(stateRoot, 'builder-runs', runId);
-  const worktree = path.join(stateRoot, 'builder-worktrees', runId);
+  const worktreeRoot = design ? await prepareClaudeDesignWorktreeRoot(config) : path.join(stateRoot, 'builder-worktrees');
+  const worktree = path.join(worktreeRoot, runId);
   const releaseLock = await acquireLock(path.join(stateRoot, 'locks', 'claude-builder.lock'), 'Claude builder', { runId, runnerPid: process.pid });
   const started = Date.now();
   const record = {
@@ -236,6 +364,7 @@ export async function runClaudeBuilder(spec, config) {
     standardPolicyVersion: mode.standardPolicyVersion,
     overlay: mode.overlay,
     builderVersion: CLAUDE_BUILDER_VERSION,
+    ...(design ? { role: 'design', requestedModel: 'claude-opus-5-5', effort: 'high', timeoutMs: spec.timeoutMs, promoted: false, worktreeRoot } : {}),
     repository: spec.repository,
     baseRevision: spec.baseRevision,
     worktree,
@@ -252,9 +381,21 @@ export async function runClaudeBuilder(spec, config) {
     if (resolved !== spec.baseRevision) throw Error('Builder base revision did not resolve exactly');
     const sourceStatus = await git(config, ['-C', repository, 'status', '--porcelain=v1', '--untracked-files=all']);
     await git(config, ['-C', repository, 'worktree', 'add', '--detach', worktree, spec.baseRevision], { timeoutMs: 180000 });
+    if (design) await verifyDesignFiles(worktree, spec.allowedFiles);
     const env = cleanClaudeBuilderEnv();
-    record.account = await claudeIdentity(config, env);
-    const deniedTools = ['Bash', 'Glob', 'Grep', 'WebFetch', 'WebSearch', 'Agent', 'Skill', 'AskUserQuestion', 'NotebookEdit'];
+    record.account = await claudeIdentity(config, env, launch);
+    const deniedTools = [
+      'Bash',
+      'Glob',
+      'Grep',
+      'WebFetch',
+      'WebSearch',
+      'Agent',
+      'Skill',
+      'AskUserQuestion',
+      'NotebookEdit',
+      ...(design ? ['PowerShell', 'StructuredOutput', 'ToolSearch'] : []),
+    ];
     const settingsFile = path.join(runDir, 'claude-settings.json');
     await atomicJson(settingsFile, { permissions: { deny: deniedTools }, enableAllProjectMcpServers: false, enabledMcpjsonServers: [] });
     const schema = {
@@ -263,7 +404,11 @@ export async function runClaudeBuilder(spec, config) {
       properties: { summary: { type: 'string', minLength: 1 }, uncertainties: { type: 'array', items: { type: 'string' } } },
       required: ['summary', 'uncertainties'],
     };
-    const prompt = builderPrompt(spec, worktree);
+    const prompt =
+      builderPrompt(spec, worktree) +
+      (design
+        ? '\nDesign role: write complete usable artifacts to the selected files. Save durable progress in an explicitly selected progress file when one is listed, and save usable work as you go. The file is the deliverable; never serialize a whole HTML artifact in your final response. Use the full available 45-minute ceiling when needed. After saving, return only a small JSON object {"summary":"what changed","uncertainties":[]}. No StructuredOutput or completion tool replaces that required final response.'
+        : '');
     await fs.writeFile(path.join(runDir, 'prompt.txt'), prompt);
     const args = [
       '-p',
@@ -289,8 +434,7 @@ export async function runClaudeBuilder(spec, config) {
       config.claudeBridge.model,
       '--effort',
       config.claudeBridge.effort,
-      '--json-schema',
-      JSON.stringify(schema),
+      ...(!design ? ['--json-schema', JSON.stringify(schema)] : []),
       '--output-format',
       'stream-json',
       '--system-prompt',
@@ -298,13 +442,36 @@ export async function runClaudeBuilder(spec, config) {
     ];
     record.status = 'running';
     await publish();
-    const worker = await execute(config.claude, args, { cwd: worktree, env, input: prompt, timeoutMs: spec.timeoutMs, maxBytes: 8388608 });
+    await atomicJson(path.join(runDir, 'argv.json'), args);
+    const worker = await launch(config.claude, args, {
+      cwd: worktree,
+      env,
+      input: prompt,
+      timeoutMs: spec.timeoutMs,
+      maxBytes: 8388608,
+      ...(design
+        ? {
+            onStdoutLine: line => {
+              if (line.trim()) inspectClaudeDesignEvent(JSON.parse(line), worktree, spec.allowedFiles);
+            },
+          }
+        : {}),
+    });
     await fs.writeFile(path.join(runDir, 'stdout.txt'), worker.stdout);
     await fs.writeFile(path.join(runDir, 'stderr.txt'), worker.stderr);
     record.exitCode = worker.code;
     record.stopReason = worker.stopped;
     record.stdoutBytes = Buffer.byteLength(worker.stdout);
     record.stderrBytes = Buffer.byteLength(worker.stderr);
+    if (design) {
+      record.policyError = worker.policyError ?? null;
+      for (const line of worker.stdout.split(/\r?\n/)) {
+        try {
+          const event = JSON.parse(line);
+          if (event.type === 'result') record.usage = event.usage ?? null;
+        } catch {}
+      }
+    }
     if (worker.code !== 0 || worker.stopped) {
       const detail = worker.stderr.trim().replace(/\s+/g, ' ').slice(0, 500);
       throw Error('Claude builder process failed' + (worker.stopped ? ': ' + worker.stopped : '') + (detail ? ': ' + detail : ''));
@@ -315,16 +482,20 @@ export async function runClaudeBuilder(spec, config) {
       config.claudeBridge.model,
       config.claudeBridge.allowedAuxiliaryModels ?? [],
       spec.allowedFiles,
+      design,
     );
+    if (design) Object.assign(record, { actualModels: decoded.actualModels, rateLimit: decoded.rateLimit, tools: decoded.tools, usage: decoded.usage });
     const changed = await changedFiles(config, worktree);
+    if (design) await verifyDesignFiles(worktree, spec.allowedFiles);
     verifyChangedPaths(worktree, changed.all, new Set(spec.allowedFiles));
     if (!changed.all.length) throw Error('Claude builder made no repository changes');
     if (changed.untracked.length) await git(config, ['-C', worktree, 'add', '-N', '--', ...changed.untracked]);
     const patchBefore = await git(config, ['-C', worktree, 'diff', '--binary', '--no-ext-diff', 'HEAD', '--']);
+    if (design) await fs.writeFile(path.join(runDir, 'candidate.patch'), patchBefore);
     const verification = [];
     const summarize = entries => entries.map(entry => ({ command: entry.command, args: entry.args, exitCode: entry.exitCode, stopReason: entry.stopReason }));
     for (const item of spec.verification) {
-      const outcome = await execute(item.command, item.args, { cwd: worktree, env: cleanClaudeBuilderEnv(), timeoutMs: item.timeoutMs, maxBytes: 4194304 });
+      const outcome = await launch(item.command, item.args, { cwd: worktree, env: cleanClaudeBuilderEnv(), timeoutMs: item.timeoutMs, maxBytes: 4194304 });
       verification.push({
         command: item.command,
         args: item.args,
@@ -341,12 +512,13 @@ export async function runClaudeBuilder(spec, config) {
     const sourceStatusAfter = await git(config, ['-C', repository, 'status', '--porcelain=v1', '--untracked-files=all']);
     if (sourceStatusAfter !== sourceStatus) throw Error('Source checkout changed during isolated build');
     const changedAfter = await changedFiles(config, worktree);
+    if (design) await verifyDesignFiles(worktree, spec.allowedFiles);
     verifyChangedPaths(worktree, changedAfter.all, new Set(spec.allowedFiles));
     const patchAfter = await git(config, ['-C', worktree, 'diff', '--binary', '--no-ext-diff', 'HEAD', '--']);
     if (hash(patchAfter) !== hash(patchBefore)) throw Error('Verification mutated the candidate patch');
     await fs.writeFile(path.join(runDir, 'candidate.patch'), patchAfter);
     await atomicJson(path.join(runDir, 'result.json'), decoded.result);
-    if ((await claudeIdentity(config, env)).fingerprint !== record.account.fingerprint) throw Error('Claude identity changed during build');
+    if ((await claudeIdentity(config, env, launch)).fingerprint !== record.account.fingerprint) throw Error('Claude identity changed during build');
     record.status = 'completed';
     record.changedFiles = changedAfter.all;
     record.diffSha256 = hash(patchAfter);
@@ -356,7 +528,14 @@ export async function runClaudeBuilder(spec, config) {
     record.usage = decoded.usage;
     record.verification = summarize(verification);
   } catch (error) {
-    await failClaudeBridge(config, record, error);
+    if (design) {
+      record.status = 'failed';
+      record.error = redact(error.message);
+      record.partialWorktreePreserved = await fs.stat(worktree).then(
+        stat => stat.isDirectory(),
+        () => false,
+      );
+    } else await failClaudeBridge(config, record, error);
   } finally {
     record.elapsedMs = Date.now() - started;
     record.finishedAt = new Date().toISOString();

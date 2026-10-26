@@ -143,3 +143,8 @@ Tool restrictions and event guards reduce exposure. They are not an OS-level san
 Artifact validation is a delivery-format check, not an HTML security sanitizer. Generated scripts can be malicious, and simple URL checks do not cover every exfiltration mechanism. Do not auto-open output. Inspect it, use a disposable unauthenticated sandbox, and test the actual behavior before accepting it.
 
 Raw local provider output can still contain sensitive material despite best-effort redaction. Never publish the state directory. Share only a separately reviewed, allowlisted export. There is no automatic global memory, conversation harvesting, silent background agent, or usage dashboard in this release.
+
+
+## Selected Opus design, separate from the legacy bridge
+
+`node scripts/run.mjs design <spec.local.json> <config.local.json>` selects the explicitly enabled claudeDesign profile. It requires claude-opus-5-5, high effort and the full2700000ms ceiling. Use an exact repository baseRevision, literal allowedFiles and approved deterministic verification commands as for the bounded builder. The profile ships disabled; configure allowed accounts, accepted plan labels, verification executables and fresh usage-credit-off evidence deliberately. Save progress in selected files, not an entire artifact in final JSON. No worker OS/browser/network/MCP/delegation, no retry, substitution or automatic promotion. The lead verifies the candidate and owns final application. The disabled legacy claude-bridge overlay is not activated by this command. This is a bounded file workflow, not a native output-cap removal or universal sandbox.

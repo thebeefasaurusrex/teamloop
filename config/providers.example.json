@@ -4,7 +4,10 @@
   "standardPolicyVersion": "1.0.0",
   "stateRoot": "../.teamloop/private",
   "blockedLiterals": ["excluded@example.test"],
-  "limits": { "maxTaskTimeoutMs": 180000, "maxRunsPerProviderPacket": 1 },
+  "limits": {
+    "maxTaskTimeoutMs": 180000,
+    "maxRunsPerProviderPacket": 1
+  },
   "codex": "codex",
   "codexHome": "./replace-with-dedicated-codex-home",
   "claude": "claude",
@@ -33,9 +36,49 @@
     "verificationExecutables": ["node"]
   },
   "providers": {
-    "codex": { "enabled": false, "allowedAccounts": [], "models": {} },
-    "claude": { "enabled": false, "allowedAccounts": [], "models": {} },
-    "gemini": { "enabled": false, "allowedAccounts": [], "models": {} },
-    "nvidia": { "enabled": false, "models": {} }
+    "codex": {
+      "enabled": false,
+      "allowedAccounts": [],
+      "models": {
+        "gpt-6.1-sol": {
+          "efforts": ["medium", "high"],
+          "imageInput": false
+        }
+      }
+    },
+    "claude": {
+      "enabled": false,
+      "allowedAccounts": [],
+      "models": {
+        "claude-sonnet-5-5": {
+          "efforts": ["high"],
+          "imageInput": false,
+          "resolvedModels": ["claude-sonnet-5-5"]
+        },
+        "claude-opus-5-5": {
+          "efforts": ["high"],
+          "imageInput": false,
+          "resolvedModels": ["claude-opus-5-5"]
+        }
+      }
+    },
+    "gemini": {
+      "enabled": false,
+      "allowedAccounts": [],
+      "models": {}
+    },
+    "nvidia": {
+      "enabled": false,
+      "models": {}
+    }
+  },
+  "claudeDesign": {
+    "enabled": false,
+    "model": "claude-opus-5-5",
+    "effort": "high",
+    "timeoutMs": 2700000,
+    "allowedAccounts": [],
+    "allowedPlanAttestations": ["max-5x"],
+    "verificationExecutables": ["node"]
   }
 }

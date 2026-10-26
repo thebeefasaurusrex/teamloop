@@ -1,0 +1,40 @@
+{
+  "policyVersion": "1.13.0",
+  "effectiveAt": "2026-10-25",
+  "scope": "Author local operating configuration, not automatic portable defaults.",
+  "lead": {
+    "provider": "codex",
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "external": false,
+    "use": "scope, implement, integrate, verify, adjudicate, and deliver"
+  },
+  "critic": {
+    "provider": "claude",
+    "model": "claude-sonnet-5-5",
+    "effort": "high",
+    "external": true,
+    "use": "independent human-facing critique, requirements, accessibility, design coherence and selected complex synthesis; GPT-6.1 Sol verifies findings and retains final authority"
+  },
+  "architect": {
+    "provider": "claude",
+    "model": "claude-opus-5-5",
+    "effort": "high",
+    "external": true,
+    "use": "rare consequential architecture, product vision, and editorial synthesis where stronger failure sequences and false-positive control justify higher latency and Claude context use"
+  },
+  "design": {
+    "provider": "claude",
+    "model": "claude-opus-5-5",
+    "effort": "high",
+    "external": true,
+    "executionMode": "file-backed-claude-design",
+    "timeoutMs": 2700000,
+    "use": "selected ambitious interface/design ownership in an isolated worktree with literal file selection, incremental saves, small final receipt and deterministic verification; GPT-6.1 Sol owns scope, integration and final judgment",
+    "fallback": null
+  },
+  "excludedModels": ["gpt-6-sol"],
+  "paidOverflow": false,
+  "apiFallback": false,
+  "silentSubstitution": false
+}

@@ -8,7 +8,7 @@ import { nvidiaIdentity } from './nvidia-nim.mjs';
 import { selectEvidence, assertEvidence } from './evidence-manifest.mjs';
 import { loadConfig, resolveModel } from './config.mjs';
 import { activateExecutionMode, formatExecutionMode, resolveExecutionMode, selectStandardMode } from './execution-mode.mjs';
-import { runClaudeBuilder } from './claude-builder.mjs';
+import { runClaudeBuilder, runClaudeDesign } from './claude-builder.mjs';
 import { describeExecutionPlan, executionPlanGraph, executionPlanStatuses, loadExecutionPlan, runExecutionPlan } from './execution-plan.mjs';
 import {
   acquireLock,
@@ -876,8 +876,8 @@ async function main() {
     else if (args[0] === 'activate') console.log(JSON.stringify(formatExecutionMode(await activateExecutionMode(config, args[1], args[2])), null, 2));
     else if (args[0] === 'standard') console.log(JSON.stringify(formatExecutionMode(await selectStandardMode(config)), null, 2));
     else throw Error('Mode commands: status, activate <name> <expires-at>, standard');
-  } else if (command === 'build') {
-    const result = await runClaudeBuilder(await readJson(args[0]), config);
+  } else if (command === 'build' || command === 'design') {
+    const result = await (command === 'design' ? runClaudeDesign : runClaudeBuilder)(await readJson(args[0]), config);
     console.log(JSON.stringify(result, null, 2));
     if (result.status !== 'completed') process.exitCode = 1;
   } else if (command === 'plan') {
