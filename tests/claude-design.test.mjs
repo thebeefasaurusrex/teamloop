@@ -2,7 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { runClaudeDesign, inspectClaudeDesignEvent, decodeClaudeBuilder, prepareClaudeDesignWorktreeRoot } from '../src/claude-builder.mjs';
+import {
+  CLAUDE_BUILDER_CAPTURE_LIMITS,
+  runClaudeDesign,
+  inspectClaudeDesignEvent,
+  decodeClaudeBuilder,
+  prepareClaudeDesignWorktreeRoot,
+} from '../src/claude-builder.mjs';
 import { execute } from '../src/shared.mjs';
 import { tempDir } from './helpers.mjs';
 
@@ -32,6 +38,7 @@ if(args[args.indexOf('--model')+1]!=='claude-opus-5-5'||args[args.indexOf('--eff
 fs.writeFileSync('index.html','<!doctype html><html><body>candidate</body></html>');fs.writeFileSync('progress.md','Durable file progress.');
 if(mode==='hardlink')fs.linkSync('index.html','../fixture-hardlink-'+process.pid);
 const emit=x=>console.log(JSON.stringify(x));
+if(mode==='large-metadata'||mode==='capture-overflow')emit({type:'user',message:{content:[]},tool_use_result:{originalFile:'x'.repeat((mode==='large-metadata'?9:33)*1024*1024)}});
 emit({type:'system',subtype:'init',model:'claude-opus-5-5',tools:['Read','Edit','Write']});
 emit({type:'assistant',message:{model:mode==='wrong-model'?'claude-sonnet-5-5':'claude-opus-5-5',content:[{type:'tool_use',name:mode==='bad-tool'?'Bash':'Write',input:{file_path:'index.html',content:'candidate'}}]}});
 if(mode==='timeout'){setTimeout(()=>{},10000);}else if(mode==='failure'){process.exitCode=2;}else{
@@ -233,4 +240,24 @@ test('design completion boundaries remain strict for limits and Markdown fences'
   ])
     assert.throws(() => decode(value), /small completion limits/);
   assert.throws(() => decode('~~~json' + JSON.stringify({ summary: 'ok', uncertainties: [] }) + '~~~'));
+});
+
+test('design captures large native file metadata within a bounded32MiB stream', async () => {
+  const f = await fixture('large-metadata');
+  const r = await runClaudeDesign(f.spec, f.config, { launch: f.launch });
+  assert.equal(r.status, 'completed', r.error);
+  assert.equal(r.streamCaptureMaxBytes, CLAUDE_BUILDER_CAPTURE_LIMITS.designBytes);
+  assert.ok(r.stdoutBytes > CLAUDE_BUILDER_CAPTURE_LIMITS.builderBytes);
+  assert.equal(CLAUDE_BUILDER_CAPTURE_LIMITS.builderBytes, 8388608);
+  assert.equal(CLAUDE_BUILDER_CAPTURE_LIMITS.designBytes, 33554432);
+});
+
+test('design still rejects oversized aggregate native stream and preserves partial work', async () => {
+  const f = await fixture('capture-overflow');
+  const r = await runClaudeDesign(f.spec, f.config, { launch: f.launch });
+  assert.equal(r.status, 'failed');
+  assert.equal(r.stopReason, 'output-limit');
+  assert.equal(r.streamCaptureMaxBytes, 33554432);
+  assert.ok(r.stdoutBytes <= 33554432);
+  assert.equal(r.partialWorktreePreserved, true);
 });
