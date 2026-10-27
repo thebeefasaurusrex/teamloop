@@ -134,18 +134,23 @@ export async function execute(
       stderr = '',
       bytes = 0,
       stopped = null,
-      pollBusy = false,
+      pollTask = null,
+      childClosed = false,
+      finishing = false,
       pendingLine = '',
       policyError = null;
     const stop = why => {
       if (stopped) return;
       stopped = why;
+      if (childClosed) return;
       if (process.platform === 'win32' && child.pid) {
         const killer = spawn(path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'taskkill.exe'), ['/PID', String(child.pid), '/T', '/F'], {
           windowsHide: true,
           stdio: 'ignore',
         });
-        killer.on('error', () => child.kill());
+        killer.on('error', () => {
+          if (!childClosed) child.kill();
+        });
       } else {
         try {
           process.kill(-child.pid, 'SIGKILL');
@@ -158,36 +163,53 @@ export async function execute(
     process.on('SIGINT', interrupt);
     process.on('SIGTERM', interrupt);
     const timer = setTimeout(() => stop('timeout'), timeoutMs);
+    // Bound each filesystem probe, including a poll already in flight at close.
+    // A late I/O result never reaches the receipt-mutating continuation.
+    const pollIO = async operation => {
+      const controller = new AbortController();
+      let deadline;
+      try {
+        return await Promise.race([
+          operation(controller.signal),
+          new Promise((_, reject) => {
+            deadline = setTimeout(() => {
+              reject(Error('Process watch/cancel check timed out after 1000 ms'));
+              controller.abort();
+            }, 1000);
+          }),
+        ]);
+      } finally {
+        clearTimeout(deadline);
+      }
+    };
+    const checkWatch = async () => {
+      if (!watchFile || !checkWatchText) return;
+      try {
+        checkWatchText(await pollIO(signal => fs.readFile(watchFile, { encoding: 'utf8', signal })));
+      } catch (error) {
+        if (error?.code !== 'ENOENT' && !stopped) {
+          policyError = redact(error?.message ?? String(error));
+          stop('worker-policy-violation');
+        }
+      }
+    };
     const poll =
       cancelFile || watchFile
-        ? setInterval(async () => {
-            if (pollBusy) return;
-            pollBusy = true;
-            try {
+        ? setInterval(() => {
+            if (pollTask || childClosed) return;
+            pollTask = (async () => {
               if (cancelFile) {
                 try {
-                  await fs.access(cancelFile);
+                  await pollIO(() => fs.access(cancelFile));
                   stop('cancelled');
                 } catch (error) {
-                  if (error.code !== 'ENOENT') stop('cancel-check-failed');
+                  if (error?.code !== 'ENOENT') stop('cancel-check-failed');
                 }
               }
-              if (watchFile && checkWatchText) {
-                try {
-                  checkWatchText(await fs.readFile(watchFile, 'utf8'));
-                } catch (error) {
-                  if (error.code !== 'ENOENT') {
-                    policyError = redact(error.message);
-                    stop('worker-policy-violation');
-                  }
-                }
-              }
-            } catch (error) {
-              policyError = redact(error.message);
-              stop('worker-policy-violation');
-            } finally {
-              pollBusy = false;
-            }
+              await checkWatch();
+            })().finally(() => {
+              pollTask = null;
+            });
           }, 250)
         : null;
     const finish = () => {
@@ -222,12 +244,17 @@ export async function execute(
         }
       });
     }
-    child.on('error', error => {
+    const settle = async (error, code, signal) => {
+      if (finishing) return;
+      finishing = true;
+      childClosed = true;
       finish();
-      reject(error);
-    });
-    child.on('close', (code, signal) => {
-      finish();
+      // Clearing an interval does not settle a read already in flight.
+      await pollTask;
+      if (error) {
+        reject(error);
+        return;
+      }
       // A native terminal event may end at EOF without a newline. Screen the raw
       // tail before redaction, while preserving an existing stop reason.
       if (!stopped && onStdoutLine && pendingLine.trim()) {
@@ -238,7 +265,18 @@ export async function execute(
           stopped = /model\/provider/i.test(error.message) ? 'worker-provider-error' : 'worker-policy-violation';
         }
       }
+      // A fast child may exit before the first poll, or append after its last one.
+      await checkWatch();
       resolve({ code, signal, stopped, policyError, stdout: redact(stdout), stderr: redact(stderr) });
+    };
+    child.on('exit', () => {
+      childClosed = true;
+    });
+    child.on('error', error => {
+      void settle(error);
+    });
+    child.on('close', (code, signal) => {
+      void settle(null, code, signal);
     });
     child.stdin.on('error', error => {
       if (error.code !== 'EPIPE' && error.code !== 'ERR_STREAM_DESTROYED') stop('stdin-error');

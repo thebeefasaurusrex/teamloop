@@ -1,0 +1,10 @@
+date,cohort,task,requested_model,effort,status,metric,score_100,targets_covered,targets_partial,targets_total,false_positive_flags,elapsed_seconds,reported_input_tokens,reported_output_tokens,reported_reasoning_subset
+2026-10-26,frozen-text-followup,migration,gpt-6.1-sol,high,completed,target-coverage,,5,0,5,0,36.749,16172,1122,459
+2026-10-26,frozen-text-followup,synthesis,gpt-6.1-sol,high,completed,target-coverage,,8,0,8,0,36.595,16072,954,345
+2026-10-26,frozen-text-followup,systems,gpt-6.1-sol,high,completed,original-systems-rubric,87,,,,,124.974,122936,3041,1552
+2026-10-26,frozen-text-followup,migration,gemini-4-argon-medium,medium,completed,target-coverage,,5,0,5,0,35.66,3892,1764,0
+2026-10-26,frozen-text-followup,synthesis,gemini-4-argon-medium,medium,completed,target-coverage,,8,0,8,0,31.859,3754,1397,131
+2026-10-26,frozen-text-followup,systems,gemini-4-argon-medium,medium,completed,original-systems-rubric,61,,,,,66.65,51207,4385,0
+2026-10-26,frozen-text-followup,migration,gemini-3.8-flash-high,high,completed,target-coverage,,5,0,5,1,57.644,3909,5821,4560
+2026-10-26,frozen-text-followup,synthesis,gemini-3.8-flash-high,high,completed,target-coverage,,7,1,8,0,68.728,3765,6983,5868
+2026-10-26,frozen-text-followup,systems,gemini-3.8-flash-high,high,completed,original-systems-rubric,39,,,,,350.95,51720,47014,45386

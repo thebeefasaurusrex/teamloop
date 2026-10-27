@@ -1,0 +1,7 @@
+task,model,effort,status,quality_score,elapsed_seconds,verified_contributions,unsupported_claims,delivery_note
+gemini-completion,gemini-3.8-flash-high,high,completed,52,176.641,2,4,Native completed; quality adjudicated.
+gemini-completion,gemini-4-argon-medium,medium,completed,81,45.999,3,3,Native completed; quality adjudicated.
+public-claims,gemini-3.8-flash-high,high,completed,59,224.894,1,3,Native completed; quality adjudicated.
+public-claims,gemini-4-argon-medium,medium,completed,97,43.055,2,0,Native completed; quality adjudicated.
+receipt-runtime,gemini-3.8-flash-high,high,failed,,198.106,,,"Native INTERNAL HTTP500; failed control, unscored; no retry. Original authentication heuristic not terminal cause."
+receipt-runtime,gemini-4-argon-medium,medium,completed,100,54.159,2,0,Native completed; quality adjudicated.

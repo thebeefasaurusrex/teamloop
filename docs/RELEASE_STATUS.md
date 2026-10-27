@@ -2,6 +2,10 @@
 
 Public preview: `0.2.0-rc.2`. The initial preview `0.2.0-rc.1` was prepared and authorized for GitHub publication on 2026-09-21. Repository: [thebeefasaurusrex/teamloop](https://github.com/thebeefasaurusrex/teamloop).
 
+## October 26, 2026 Argon review evidence and final-watch correction
+
+The [Argon change record](UPDATE_2026-10-26_ARGON.md) separates the nine-primary frozen text screen from six current-work review attempts, preserves the failed Flash control without a quality score, and records Argon's reproduced final-watch finding. The process helper waits for pending/final watched-file checks before publishing completion, with bounded filesystem probes and existing stop precedence. Independent review and full release checks gate delivery. This is not proof of a live paid fallback or operational-tool escape. Argon remains an experimental evaluation candidate; production allowlists, package version and policy `1.13.0` are unchanged.
+
 ## October 26, 2026 receipt hardening and scored follow-up
 
 Builder 1.0.6 validates raw design receipt bytes and fields before redaction, including terminal EOF without a final newline. Summary limit is now 4,096 characters; 16 KiB total and uncertainty limits remain bounded. Exact single-json-fence formatting tolerance does not repair malformed JSON. Design capture stays 32 MiB and the legacy bridge 8 MiB. See the [runtime and evidence change record](UPDATE_2026-10-26.md). Package version and local routing policy are unchanged.

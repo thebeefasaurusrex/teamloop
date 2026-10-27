@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import childProcess from 'node:child_process';
+import { syncBuiltinESMExports } from 'node:module';
 import { acquireLock, execute, redact, safeText, scanStrings } from '../src/shared.mjs';
 import { classifyFailure, decode, prepare } from '../src/team-loop.mjs';
 import { tempDir } from './helpers.mjs';
@@ -113,4 +115,186 @@ test('Claude decoding accepts a pretty-printed single envelope and a stream-json
   assert.deepEqual(decode('claude', stream, 'abc').review, review);
   assert.throws(() => decode('claude', '[]', 'abc'));
   assert.throws(() => decode('unknown-transport', '{}', 'abc'), /Unsupported provider transport/);
+});
+
+test('execute checks fast-child watch logs at close without terminating an exited PID', async () => {
+  const root = await tempDir('teamloop-watch-close-');
+  const watchFile = path.join(root, 'watch.log');
+  const originalSpawn = childProcess.spawn;
+  let exited = false;
+  let postExitKills = 0;
+  childProcess.spawn = (...args) => {
+    if (exited && /taskkill/i.test(args[0])) postExitKills++;
+    const child = originalSpawn(...args);
+    if (args[0] === process.execPath)
+      child.once('exit', () => {
+        exited = true;
+      });
+    return child;
+  };
+  syncBuiltinESMExports();
+  try {
+    const token = 'nvapi-' + 'x'.repeat(30);
+    const result = await execute(process.execPath, ['-e', `require('node:fs').writeFileSync(${JSON.stringify(watchFile)}, 'forbidden');`], {
+      watchFile,
+      checkWatchText: text => {
+        assert.equal(text, 'forbidden');
+        throw Error('rejected ' + token);
+      },
+    });
+    assert.equal(result.code, 0);
+    assert.equal(result.stopped, 'worker-policy-violation');
+    assert.equal(result.policyError, 'rejected [REDACTED]');
+    assert.equal(postExitKills, 0);
+  } finally {
+    childProcess.spawn = originalSpawn;
+    syncBuiltinESMExports();
+  }
+});
+
+test('execute settles an in-flight watch read and checks the final appended log before returning', async () => {
+  const root = await tempDir('teamloop-watch-inflight-');
+  const watchFile = path.join(root, 'watch.log');
+  await fs.writeFile(watchFile, 'initial');
+  const originalRead = fs.readFile;
+  let release;
+  const closing = new Promise(resolve => {
+    release = resolve;
+  });
+  let reads = 0;
+  let checks = 0;
+  fs.readFile = async (...args) => {
+    if (args[0] !== watchFile) return originalRead(...args);
+    reads++;
+    if (reads === 1) {
+      // Snapshot before the append, but keep this poll outstanding beyond close.
+      const snapshot = await originalRead(...args);
+      await closing;
+      await new Promise(resolve => setTimeout(resolve, 100));
+      return snapshot;
+    }
+    return originalRead(...args);
+  };
+  try {
+    const script = `setTimeout(()=>{require('node:fs').appendFileSync(${JSON.stringify(watchFile)}, ' forbidden');console.log('closing');},450);`;
+    const result = await execute(process.execPath, ['-e', script], {
+      watchFile,
+      onStdoutLine: () => release(),
+      checkWatchText: text => {
+        checks++;
+        if (text.includes('forbidden')) throw Error('final log rejected');
+      },
+    });
+    assert.ok(reads >= 2);
+    assert.equal(result.stopped, 'worker-policy-violation');
+    assert.equal(result.policyError, 'final log rejected');
+    const counts = [reads, checks];
+    await new Promise(resolve => setTimeout(resolve, 300));
+    assert.deepEqual([reads, checks], counts, 'no poll mutates state after resolution');
+  } finally {
+    release();
+    fs.readFile = originalRead;
+  }
+});
+
+test('execute contains final watch read/callback failures, tolerates absence, and preserves earlier stops', async () => {
+  const root = await tempDir('teamloop-watch-errors-');
+  const absent = path.join(root, 'absent');
+  const noWatch = await execute(process.execPath, ['-e', ''], { watchFile: absent, checkWatchText: () => assert.fail('absent file') });
+  assert.equal(noWatch.stopped, null);
+  const directory = await execute(process.execPath, ['-e', ''], { watchFile: root, checkWatchText: () => assert.fail('directory') });
+  assert.equal(directory.stopped, 'worker-policy-violation');
+  await fs.writeFile(absent, 'blocked');
+  const callbackFailure = await execute(process.execPath, ['-e', ''], {
+    watchFile: absent,
+    checkWatchText: () => {
+      throw null;
+    },
+  });
+  assert.equal(callbackFailure.stopped, 'worker-policy-violation');
+  assert.equal(callbackFailure.policyError, 'null');
+  const cancelFile = path.join(root, 'cancel');
+  await fs.writeFile(cancelFile, 'cancel');
+  for (const [script, options, expected] of [
+    ['setTimeout(()=>{},5000)', { timeoutMs: 60 }, 'timeout'],
+    ['setTimeout(()=>{},5000)', { cancelFile }, 'cancelled'],
+    ['process.stdout.write("x".repeat(1000))', { maxBytes: 10 }, 'output-limit'],
+    [
+      'console.log("bad receipt")',
+      {
+        onStdoutLine: () => {
+          throw Error('original receipt failure');
+        },
+      },
+      'worker-policy-violation',
+    ],
+    [
+      'process.stdout.write("bad EOF")',
+      {
+        onStdoutLine: () => {
+          throw Error('model/provider mismatch');
+        },
+      },
+      'worker-provider-error',
+    ],
+  ]) {
+    const result = await execute(process.execPath, ['-e', script], {
+      ...options,
+      watchFile: absent,
+      checkWatchText: () => {
+        throw Error('later watch failure');
+      },
+    });
+    assert.equal(result.stopped, expected);
+    assert.equal(
+      result.policyError,
+      expected === 'worker-policy-violation' ? 'original receipt failure' : expected === 'worker-provider-error' ? 'model/provider mismatch' : null,
+    );
+  }
+});
+
+test('execute fails closed on stalled watch and cancel probes and ignores their late results', async () => {
+  const root = await tempDir('teamloop-watch-stall-');
+  const watchFile = path.join(root, 'watch.log');
+  await fs.writeFile(watchFile, 'allowed');
+  const originalRead = fs.readFile;
+  const originalAccess = fs.access;
+  let releaseRead;
+  let releaseAccess;
+  let checks = 0;
+  fs.readFile = (...args) =>
+    args[0] === watchFile
+      ? new Promise(resolve => {
+          releaseRead = resolve;
+        })
+      : originalRead(...args);
+  try {
+    const started = Date.now();
+    const result = await execute(process.execPath, ['-e', ''], {
+      watchFile,
+      checkWatchText: () => {
+        checks++;
+      },
+    });
+    assert.equal(result.stopped, 'worker-policy-violation');
+    assert.match(result.policyError, /timed out after 1000 ms/);
+    assert.ok(Date.now() - started < 4000, 'stalled final read has a finite deadline');
+    releaseRead('allowed');
+    await new Promise(resolve => setTimeout(resolve, 20));
+    assert.equal(checks, 0);
+    fs.access = (...args) =>
+      args[0] === watchFile
+        ? new Promise(resolve => {
+            releaseAccess = resolve;
+          })
+        : originalAccess(...args);
+    const cancelled = await execute(process.execPath, ['-e', 'setTimeout(()=>{},450)'], { cancelFile: watchFile });
+    assert.equal(cancelled.stopped, 'cancel-check-failed');
+    releaseAccess();
+    await new Promise(resolve => setTimeout(resolve, 20));
+    assert.equal(cancelled.stopped, 'cancel-check-failed');
+  } finally {
+    fs.readFile = originalRead;
+    fs.access = originalAccess;
+  }
 });
