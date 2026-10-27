@@ -1,0 +1,16 @@
+task,model,effort,workflow,process,raw_panel_quality,calibrated_quality,functional,depth,originality,information_architecture,interaction,desktop_visual,earned_complexity,delivery_note
+fleet,gpt-6.1-sol,high,original one-shot HTML JSON,primary,40.5,39.5,0,17,11,5,0,4.5,2,HTML delivered; startup syntax failure
+fleet,gpt-6-luna,high,original one-shot HTML JSON,primary,47.5,49.0,9,7.5,6,10.5,5,8.5,2.5,Completed HTML artifact; functional limitations documented
+fleet,claude-sonnet-5-5,high,file-only Read/Write/Edit,completed artifact,81,81.0,19,18,12.5,12.5,7.5,7.5,4,Native completed; malformed completion receipt; artifact-quality only
+fleet,claude-opus-5-5,high,file-only Read/Write/Edit,completed artifact,86,85.5,21,19,13,12,8.5,7.5,4.5,Native completed; separate receipt-limit recovery; original failure preserved
+fleet,gpt-6.1-sol,high,original one-shot HTML JSON,repair,88.5,89.0,22,18.5,12.5,13.5,9,9,4.5,Completed HTML artifact; functional limitations documented
+failure,claude-sonnet-5-5,high,file-only Read/Write/Edit,completed artifact,85,85.5,21.5,18,13.5,13,8.5,7,4,Completed HTML artifact; functional limitations documented
+failure,gpt-6-luna,high,file Read/Write/Edit + isolated JavaScript,primary,45.5,47.0,3.5,10.5,8.5,10.5,3,8.5,2.5,HTML delivered; startup or Run failure
+failure,gpt-6-luna,high,original one-shot HTML JSON,primary,39,39.5,1,9.5,8,10,1.5,7.5,2,HTML delivered; startup or Run failure
+failure,gpt-5.6-terra,high,file Read/Write/Edit + isolated JavaScript,primary,62,62.5,15.5,10.5,9,11,6,7.5,3,Completed HTML artifact; functional limitations documented
+failure,gpt-6.1-sol,high,original one-shot HTML JSON,primary,91,91.0,23,18.5,13.5,14,8.5,9,4.5,Completed HTML artifact; functional limitations documented
+failure,claude-opus-5-5,high,file-only Read/Write/Edit,completed artifact,85.5,86.5,21,19,14,12.5,8.5,7.5,4,Explicit fresh corrected attempt completed; earlier capture abort preserved
+futures,claude-sonnet-5-5,high,original one-shot HTML JSON,primary,84,83.5,21,18,13.5,12,8,7,4,Completed HTML artifact; functional limitations documented
+futures,gpt-6-luna,high,original one-shot HTML JSON,primary,66,67.0,15.5,12.5,10,11,6.5,8.5,3,Completed HTML artifact; functional limitations documented
+futures,gpt-6.1-sol,high,original one-shot HTML JSON,primary,91,91.0,22.5,19,13.5,14,9,8.5,4.5,Completed HTML artifact; functional limitations documented
+futures,claude-opus-5-5,high,file-only Read/Write/Edit,completed artifact,86,86.5,20.5,18.5,14,12.5,8.5,8.5,4,Completed HTML artifact; functional limitations documented

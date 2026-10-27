@@ -2,6 +2,10 @@
 
 Public preview: `0.2.0-rc.2`. The initial preview `0.2.0-rc.1` was prepared and authorized for GitHub publication on 2026-09-21. Repository: [thebeefasaurusrex/teamloop](https://github.com/thebeefasaurusrex/teamloop).
 
+## October 26, 2026 receipt hardening and scored follow-up
+
+Builder 1.0.6 validates raw design receipt bytes and fields before redaction, including terminal EOF without a final newline. Summary limit is now 4,096 characters; 16 KiB total and uncertainty limits remain bounded. Exact single-json-fence formatting tolerance does not repair malformed JSON. Design capture stays 32 MiB and the legacy bridge 8 MiB. See the [runtime and evidence change record](UPDATE_2026-10-26.md). Package version and local routing policy are unchanged.
+
 ## October 25, 2026 design receipt clarification
 
 Builder 1.0.4 explicitly tells file-design workers the existing final-receipt limits: raw JSON only, summary at most 2,048 characters, at most 16 uncertainty strings of 512 characters each, and 16,384 UTF-8 bytes overall. The prompt and validator share those limits. Acceptance, permissions and the 45-minute allowance are unchanged; prior rejected outputs remain rejected. No live-provider recovery claim follows from fixture tests.

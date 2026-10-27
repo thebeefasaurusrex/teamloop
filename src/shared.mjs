@@ -228,6 +228,16 @@ export async function execute(
     });
     child.on('close', (code, signal) => {
       finish();
+      // A native terminal event may end at EOF without a newline. Screen the raw
+      // tail before redaction, while preserving an existing stop reason.
+      if (!stopped && onStdoutLine && pendingLine.trim()) {
+        try {
+          onStdoutLine(pendingLine);
+        } catch (error) {
+          policyError = redact(error.message);
+          stopped = /model\/provider/i.test(error.message) ? 'worker-provider-error' : 'worker-policy-violation';
+        }
+      }
       resolve({ code, signal, stopped, policyError, stdout: redact(stdout), stderr: redact(stderr) });
     });
     child.stdin.on('error', error => {

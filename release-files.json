@@ -90,5 +90,7 @@
   "evals/results/original-replay-2026-10-25.csv",
   "skills/team-loop-claude/SKILL.md",
   "tests/claude-design.test.mjs",
-  "docs/ACTIVE_ROUTING_2026-10-25.json"
+  "docs/ACTIVE_ROUTING_2026-10-25.json",
+  "docs/UPDATE_2026-10-26.md",
+  "evals/results/claude-calibrated-2026-10-26.csv"
 ]

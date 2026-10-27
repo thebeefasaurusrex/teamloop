@@ -18,8 +18,8 @@ import {
   redact,
 } from './shared.mjs';
 
-export const CLAUDE_BUILDER_VERSION = '1.0.5';
-export const CLAUDE_DESIGN_COMPLETION_LIMITS = Object.freeze({ summaryChars: 2048, uncertainties: 16, uncertaintyChars: 512, jsonBytes: 16384 });
+export const CLAUDE_BUILDER_VERSION = '1.0.6';
+export const CLAUDE_DESIGN_COMPLETION_LIMITS = Object.freeze({ summaryChars: 4096, uncertainties: 16, uncertaintyChars: 512, jsonBytes: 16384 });
 export const claudeDesignCompletionInstructions = `Return exactly one raw JSON object with only summary and uncertainties. No Markdown fences, headings or prose outside JSON. The summary must be at most ${CLAUDE_DESIGN_COMPLETION_LIMITS.summaryChars} characters; uncertainties at most ${CLAUDE_DESIGN_COMPLETION_LIMITS.uncertainties} strings, each at most ${CLAUDE_DESIGN_COMPLETION_LIMITS.uncertaintyChars} characters. The entire JSON must fit within ${CLAUDE_DESIGN_COMPLETION_LIMITS.jsonBytes} UTF-8 bytes. Describe saved files briefly; do not include artifact contents.`;
 export const CLAUDE_BUILDER_CAPTURE_LIMITS = Object.freeze({ builderBytes: 8388608, designBytes: 33554432 });
 const allowedTools = new Set(['Read', 'Edit', 'Write', 'StructuredOutput']);
@@ -158,6 +158,9 @@ export function inspectClaudeDesignEvent(event, worktree, selectedFiles) {
     throw Error('Design overage not rejected');
   if (event.type === 'result' && (event.permission_denials?.length || Object.values(event.usage?.server_tool_use ?? {}).some(value => value > 0)))
     throw Error('Design denied/server tool use');
+  // execute screens native stdout lines before redacting captured text. Validate the
+  // original receipt here so token-like content cannot shrink past the limits.
+  if (event.type === 'result') parseDesignCompletion(event.result);
 }
 
 async function verifyDesignFiles(worktree, selectedFiles) {
@@ -201,6 +204,39 @@ export async function prepareClaudeDesignWorktreeRoot(config) {
   const physical = path.resolve(await fs.realpath(requested));
   if (explicit !== undefined && physical !== requested) throw Error('Design worktreeRoot must name its canonical physical path, not a filesystem alias');
   return physical;
+}
+
+function parseDesignCompletion(raw) {
+  // Bound the original receipt, including whitespace and any fence, before parsing or normalization.
+  if (typeof raw !== 'string') throw Error('Design requires a native final JSON receipt');
+  if (Buffer.byteLength(raw, 'utf8') > CLAUDE_DESIGN_COMPLETION_LIMITS.jsonBytes) throw Error('Design final summary exceeds small completion limits');
+  const text = raw.trim();
+  const fenced = /^```json\r?\n([\s\S]*?)\r?\n```$/.exec(text);
+  let value;
+  try {
+    value = JSON.parse(fenced ? fenced[1] : text);
+  } catch {
+    throw new SyntaxError('Design final receipt is not valid JSON');
+  }
+  validateCompletionSchema(value);
+  if (
+    value.summary.length > CLAUDE_DESIGN_COMPLETION_LIMITS.summaryChars ||
+    value.uncertainties.length > CLAUDE_DESIGN_COMPLETION_LIMITS.uncertainties ||
+    value.uncertainties.some(item => item.length > CLAUDE_DESIGN_COMPLETION_LIMITS.uncertaintyChars)
+  )
+    throw Error('Design final summary exceeds small completion limits');
+  return value;
+}
+
+function validateCompletionSchema(value) {
+  const wellFormed =
+    value &&
+    typeof value.summary === 'string' &&
+    value.summary.trim() &&
+    Array.isArray(value.uncertainties) &&
+    value.uncertainties.every(item => typeof item === 'string') &&
+    Object.keys(value).every(key => ['summary', 'uncertainties'].includes(key));
+  if (!wellFormed) throw Error('Claude builder returned invalid structured output');
 }
 
 export function decodeClaudeBuilder(output, worktree, requestedModel, allowedAuxiliaryModels = [], selectedFiles = [], design = false) {
@@ -255,23 +291,8 @@ export function decodeClaudeBuilder(output, worktree, requestedModel, allowedAux
     if (!model.toLowerCase().includes(requested) && !allowedAuxiliaryModels.some(prefix => model.startsWith(prefix)))
       throw Error('Claude builder reported an unapproved auxiliary or fallback model: ' + model);
   }
-  const value = design ? JSON.parse(result.result ?? '') : (result.structured_output ?? JSON.parse(result.result ?? ''));
-  const wellFormed =
-    value &&
-    typeof value.summary === 'string' &&
-    value.summary.trim() &&
-    Array.isArray(value.uncertainties) &&
-    value.uncertainties.every(item => typeof item === 'string') &&
-    Object.keys(value).every(key => ['summary', 'uncertainties'].includes(key));
-  if (!wellFormed) throw Error('Claude builder returned invalid structured output');
-  if (
-    design &&
-    (Buffer.byteLength(JSON.stringify(value)) > CLAUDE_DESIGN_COMPLETION_LIMITS.jsonBytes ||
-      value.summary.length > CLAUDE_DESIGN_COMPLETION_LIMITS.summaryChars ||
-      value.uncertainties.length > CLAUDE_DESIGN_COMPLETION_LIMITS.uncertainties ||
-      value.uncertainties.some(item => item.length > CLAUDE_DESIGN_COMPLETION_LIMITS.uncertaintyChars))
-  )
-    throw Error('Design final summary exceeds small completion limits');
+  const value = design ? parseDesignCompletion(result.result) : (result.structured_output ?? JSON.parse(result.result ?? ''));
+  if (!design) validateCompletionSchema(value);
   return {
     result: value,
     usage: result.usage ?? null,

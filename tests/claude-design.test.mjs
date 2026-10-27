@@ -37,13 +37,22 @@ if(args[0]==='auth'){console.log(JSON.stringify({loggedIn:true,authMethod:'claud
 if(args[args.indexOf('--model')+1]!=='claude-opus-5-5'||args[args.indexOf('--effort')+1]!=='high'||args.includes('--json-schema'))throw Error('incorrect design argv');
 fs.writeFileSync('index.html','<!doctype html><html><body>candidate</body></html>');fs.writeFileSync('progress.md','Durable file progress.');
 if(mode==='hardlink')fs.linkSync('index.html','../fixture-hardlink-'+process.pid);
-const emit=x=>console.log(JSON.stringify(x));
+const emit=x=>mode.endsWith('-eof')&&x.type==='result'?process.stdout.write(JSON.stringify(x)):console.log(JSON.stringify(x));
 if(mode==='large-metadata'||mode==='capture-overflow')emit({type:'user',message:{content:[]},tool_use_result:{originalFile:'x'.repeat((mode==='large-metadata'?9:33)*1024*1024)}});
 emit({type:'system',subtype:'init',model:'claude-opus-5-5',tools:['Read','Edit','Write']});
 emit({type:'assistant',message:{model:mode==='wrong-model'?'claude-sonnet-5-5':'claude-opus-5-5',content:[{type:'tool_use',name:mode==='bad-tool'?'Bash':'Write',input:{file_path:'index.html',content:'candidate'}}]}});
 if(mode==='timeout'){setTimeout(()=>{},10000);}else if(mode==='failure'){process.exitCode=2;}else{
 emit({type:'rate_limit_event',rate_limit_info:{isUsingOverage:false,overageStatus:'rejected'}});
-emit({type:'result',subtype:'success',is_error:false,terminal_reason:'completed',permission_denials:[],modelUsage:{'claude-opus-5-5':{}},usage:{input_tokens:11},result:JSON.stringify({summary:'Saved design files.',uncertainties:[]})});}
+let receipt=JSON.stringify({summary:'Saved design files.',uncertainties:[]});
+if(mode==='fenced-receipt')receipt='\x60\x60\x60json\\n'+receipt+'\\n\x60\x60\x60';
+if(mode==='oversized-receipt')receipt+=' '.repeat(16384);
+if(mode.startsWith('redacted-bytes'))receipt=JSON.stringify({summary:'sk-'+'x'.repeat(17000),uncertainties:[]});
+if(mode.startsWith('redacted-summary'))receipt=JSON.stringify({summary:'sk-'+'x'.repeat(4094),uncertainties:[]});
+if(mode.startsWith('redacted-uncertainty'))receipt=JSON.stringify({summary:'Saved.',uncertainties:['sk-'+'x'.repeat(510)]});
+if(mode.startsWith('redacted-schema'))receipt=JSON.stringify({summary:'Saved.',uncertainties:[],extra:'sk-'+'x'.repeat(100)});
+if(mode==='redacted-valid')receipt=JSON.stringify({summary:'sk-'+'x'.repeat(100),uncertainties:[]});
+if(mode==='malformed-receipt-eof')receipt='{"summary":"unterminated';
+emit({type:'result',subtype:'success',is_error:false,terminal_reason:'completed',permission_denials:[],modelUsage:{'claude-opus-5-5':{}},usage:{input_tokens:11},result:receipt});}
 `,
   );
   const config = {
@@ -136,7 +145,7 @@ test('design disabled/default, model drift, excessive timeout and unsafe paths r
     await assert.rejects(runClaudeDesign(f.spec, { ...f.config, providers: { claude: provider } }, { launch: f.launch }));
 });
 
-for (const mode of ['timeout', 'failure', 'bad-tool', 'wrong-model'])
+for (const mode of ['timeout', 'failure', 'bad-tool', 'wrong-model', 'oversized-receipt'])
   test('design preserves isolated partial files on ' + mode, async () => {
     const f = await fixture(mode);
     const r = await runClaudeDesign(f.spec, f.config, { launch: f.launch });
@@ -149,6 +158,52 @@ for (const mode of ['timeout', 'failure', 'bad-tool', 'wrong-model'])
     assert.ok(await fs.readFile(path.join(f.config.stateRoot, 'builder-runs', r.runId, 'stdout.txt'), 'utf8'));
     if (mode === 'timeout') assert.equal(r.stopReason, 'timeout');
   });
+
+test('a single fenced native receipt completes selected-file design without retry', async () => {
+  const f = await fixture('fenced-receipt');
+  const r = await runClaudeDesign(f.spec, f.config, { launch: f.launch });
+  assert.equal(r.status, 'completed', r.error);
+  assert.deepEqual(JSON.parse(await fs.readFile(path.join(f.config.stateRoot, 'builder-runs', r.runId, 'result.json'), 'utf8')), {
+    summary: 'Saved design files.',
+    uncertainties: [],
+  });
+  assert.equal(f.calls.filter(c => c.args.includes('-p')).length, 1);
+  assert.equal(r.promoted, false);
+});
+
+for (const kind of ['bytes', 'summary', 'uncertainty', 'schema'])
+  for (const ending of ['', '-eof'])
+    test('native raw receipt rejects ' + kind + ' violation before token redaction' + ending, async () => {
+      const f = await fixture('redacted-' + kind + ending);
+      const r = await runClaudeDesign(f.spec, f.config, { launch: f.launch });
+      assert.equal(r.status, 'failed');
+      assert.equal(r.stopReason, 'worker-policy-violation');
+      assert.match(r.policyError, kind === 'schema' ? /invalid structured output/ : /small completion limits/);
+      assert.equal(r.partialWorktreePreserved, true);
+      assert.equal(r.promoted, false);
+      assert.equal(f.calls.filter(c => c.args.includes('-p')).length, 1);
+      const stdout = await fs.readFile(path.join(f.config.stateRoot, 'builder-runs', r.runId, 'stdout.txt'), 'utf8');
+      assert.ok(stdout.includes('[REDACTED]'));
+      assert.ok(!stdout.includes('sk-' + 'x'.repeat(100)));
+      await assert.rejects(fs.access(path.join(f.config.stateRoot, 'builder-runs', r.runId, 'result.json')));
+    });
+
+test('valid raw token-like receipt still completes with redacted retained text', async () => {
+  const f = await fixture('redacted-valid');
+  const r = await runClaudeDesign(f.spec, f.config, { launch: f.launch });
+  assert.equal(r.status, 'completed', r.error);
+  const result = JSON.parse(await fs.readFile(path.join(f.config.stateRoot, 'builder-runs', r.runId, 'result.json'), 'utf8'));
+  assert.equal(result.summary, '[REDACTED]');
+});
+
+test('a malformed native EOF receipt fails with a content-free parse diagnostic', async () => {
+  const f = await fixture('malformed-receipt-eof');
+  const r = await runClaudeDesign(f.spec, f.config, { launch: f.launch });
+  assert.equal(r.status, 'failed');
+  assert.equal(r.stopReason, 'worker-policy-violation');
+  assert.equal(r.policyError, 'Design final receipt is not valid JSON');
+  assert.equal(r.partialWorktreePreserved, true);
+});
 
 test('verification failure retains patch and worktree with failed status', async () => {
   const f = await fixture('success', true);
@@ -204,7 +259,7 @@ test('design terminal exact identity, early overage and small raw completion are
   assert.throws(() => decode([rate, result]));
   assert.throws(() => decode([init, rate, { ...result, modelUsage: { 'claude-opus-5-5': {}, 'claude-haiku-5-5': {} } }]));
   assert.throws(() => decode([init, { ...rate, rate_limit_info: { isUsingOverage: true, overageStatus: 'allowed' } }, rate, result]));
-  assert.throws(() => decode([init, rate, { ...result, result: JSON.stringify({ summary: 'x'.repeat(2049), uncertainties: [] }) }]));
+  assert.throws(() => decode([init, rate, { ...result, result: JSON.stringify({ summary: 'x'.repeat(4097), uncertainties: [] }) }]));
   assert.throws(() => decode([init, rate, { ...result, result: '', structured_output: { summary: 'schema-only response', uncertainties: [] } }]));
 });
 
@@ -213,7 +268,7 @@ test('actual design prompt discloses exact completion limits and raw JSON contra
   const r = await runClaudeDesign(f.spec, f.config, { launch: f.launch });
   assert.equal(r.status, 'completed', r.error);
   const prompt = await fs.readFile(path.join(f.config.stateRoot, 'builder-runs', r.runId, 'prompt.txt'), 'utf8');
-  for (const value of ['2048 characters', '16 strings', '512 characters', '16384 UTF-8 bytes', 'No Markdown fences']) assert.ok(prompt.includes(value), value);
+  for (const value of ['4096 characters', '16 strings', '512 characters', '16384 UTF-8 bytes', 'No Markdown fences']) assert.ok(prompt.includes(value), value);
   assert.equal(r.timeoutMs, 2700000);
   assert.equal(r.promoted, false);
 });
@@ -231,9 +286,9 @@ test('design completion boundaries remain strict for limits and Markdown fences'
       ['index.html'],
       true,
     );
-  decode({ summary: 'x'.repeat(2048), uncertainties: Array(16).fill('x'.repeat(512)) });
+  decode({ summary: 'x'.repeat(4096), uncertainties: Array(16).fill('x'.repeat(512)) });
   for (const value of [
-    { summary: 'x'.repeat(2049), uncertainties: [] },
+    { summary: 'x'.repeat(4097), uncertainties: [] },
     { summary: 'ok', uncertainties: Array(17).fill('x') },
     { summary: 'ok', uncertainties: ['x'.repeat(513)] },
     { summary: 'ok', uncertainties: Array(16).fill('中'.repeat(512)) },

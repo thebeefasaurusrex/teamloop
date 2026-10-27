@@ -2,11 +2,58 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { acquireLock, redact, safeText, scanStrings } from '../src/shared.mjs';
+import { acquireLock, execute, redact, safeText, scanStrings } from '../src/shared.mjs';
 import { classifyFailure, decode, prepare } from '../src/team-loop.mjs';
 import { tempDir } from './helpers.mjs';
 
 const review = { packetHash: 'abc', verdict: 'approve', summary: 'Fixture only', findings: [], uncertainties: [] };
+
+test('execute screens raw EOF stdout once before redaction and contains callback failures', async () => {
+  const token = 'sk-' + 'x'.repeat(100);
+  for (const ending of ['', '\n']) {
+    const seen = [];
+    const result = await execute(process.execPath, ['-e', 'process.stdout.write(' + JSON.stringify(token + ending) + ')'], {
+      onStdoutLine: line => seen.push(line),
+    });
+    assert.deepEqual(seen, [token]);
+    assert.equal(result.stopped, null);
+    assert.equal(result.stdout, '[REDACTED]' + ending);
+  }
+  for (const [message, expected] of [
+    ['invalid receipt', 'worker-policy-violation'],
+    ['model/provider mismatch', 'worker-provider-error'],
+  ]) {
+    const result = await execute(process.execPath, ['-e', 'process.stdout.write("malformed-tail")'], {
+      onStdoutLine: () => {
+        throw Error(message);
+      },
+    });
+    assert.equal(result.stopped, expected);
+    assert.equal(result.policyError, message);
+  }
+});
+
+test('execute keeps timeout and output-limit precedence without screening interrupted EOF tails', async () => {
+  const cancelFile = path.join(await tempDir('teamloop-eof-cancel-'), 'cancel');
+  await fs.writeFile(cancelFile, 'cancel');
+  for (const [script, options, expected] of [
+    ['process.stdout.write("partial");setTimeout(()=>{},5000)', { timeoutMs: 500 }, 'timeout'],
+    ['process.stdout.write("partial");setTimeout(()=>{},5000)', { cancelFile }, 'cancelled'],
+    ['process.stdout.write("x".repeat(1000))', { maxBytes: 10 }, 'output-limit'],
+  ]) {
+    let calls = 0;
+    const result = await execute(process.execPath, ['-e', script], {
+      ...options,
+      onStdoutLine: () => {
+        calls++;
+        throw Error('tail must not replace stop');
+      },
+    });
+    assert.equal(result.stopped, expected);
+    assert.equal(result.policyError, null);
+    assert.equal(calls, 0);
+  }
+});
 
 test('screening errors name the pattern and the file or field that tripped it', async () => {
   assert.throws(() => safeText('password="a-real-secret"', [], 'brief.md'), /credential assignment.* in brief\.md/);
