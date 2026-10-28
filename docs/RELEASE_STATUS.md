@@ -2,6 +2,10 @@
 
 Public preview: `0.2.0-rc.2`. The initial preview `0.2.0-rc.1` was prepared and authorized for GitHub publication on 2026-09-21. Repository: [thebeefasaurusrex/teamloop](https://github.com/thebeefasaurusrex/teamloop).
 
+## October 28, 2026 matched host-action design evidence
+
+The [new design cohort](UPDATE_2026-10-28_DESIGN.md) records two completed synthetic artifacts under a separate matched host Read/Write/Edit workflow: Opus 5.5 High 91/100 and Argon Medium 69/100. Original one-shot history remains unchanged. Setup, passive-observer and host-storage recoveries are disclosed without quality regeneration; export-file contents remain unverified. The study-local controller is not shipped as a new default runtime route, and Argon receives no design promotion. Package version and operating policy `1.14.0` remain unchanged.
+
 ## October 28, 2026 accepted local Terra migration
 
 The [Terra operating update](UPDATE_2026-10-28_TERRA.md) and [sanitized local snapshot](ACTIVE_ROUTING_2026-10-28.json) record policy `1.14.0`: active GPT-6.1 Terra Medium replaces GPT-5.6 Terra; GPT-6.1 Sol Medium remains lead and the pinned Claude specialist roles stay unchanged. The user accepted the move with included subscription savings explicitly unverified. Two matching text smokes and lower published Standard credit rates are bounded evidence, not a broad quality benchmark or measured subscription-saving ratio. The portable runtime has no old active Terra literal to replace and receives no personal default; package version is unchanged. Historical scores and snapshots remain frozen.

@@ -14,6 +14,8 @@ Created by **Mark Salisbury with Codex**. Inspired by [Claudex Loop](https://git
 
 This is a **public preview**, extracted from a working personal setup. The portable core is tested with local fixtures. Live provider compatibility must be checked for your own account, CLI version, and platform. It is not a universal model leaderboard, a new chat app, or a claim of guaranteed token savings.
 
+The [October 28 matched host-action design trial](docs/UPDATE_2026-10-28_DESIGN.md) preserves the original console brief in a separate workflow with the same file actions. Opus 5.5 High scored **91** and Argon Medium **69**; both completed, while Argon retained evidence-fidelity, score-bound and verdict-label defects. Two unchanged examples are linked from Frontier. This evidence does not promote Argon or change policy **1.14.0**, 6.1 Sol as lead, active Terra 6.1 or the pinned Claude roles.
+
 The [October 28 Terra operating update](docs/UPDATE_2026-10-28_TERRA.md) records the accepted active migration to **GPT-6.1 Terra Medium** under local policy **1.14.0**, while **GPT-6.1 Sol Medium stays lead**. Published Standard credit rates are lower, but included subscription savings remain unverified. Historical GPT-5.6 Terra results and dated snapshots stay unchanged; the portable runtime does not install personal model defaults.
 
 The [October 26 Argon current-work trials](docs/UPDATE_2026-10-26_ARGON.md) add nine frozen text comparisons, six current-work attempts and a reproduced final-watch process-helper correction. Argon won both delivered current-work pairs; the failed Flash control stays unscored. Argon remains candidate-only, with GPT-6.1 Sol lead and pinned Claude roles unchanged.

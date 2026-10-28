@@ -97,5 +97,7 @@
   "evals/results/argon-text-screen-2026-10-26.csv",
   "evals/results/argon-field-trials-2026-10-26.csv",
   "docs/UPDATE_2026-10-28_TERRA.md",
-  "docs/ACTIVE_ROUTING_2026-10-28.json"
+  "docs/ACTIVE_ROUTING_2026-10-28.json",
+  "docs/UPDATE_2026-10-28_DESIGN.md",
+  "evals/results/matched-host-design-2026-10-28.csv"
 ]
