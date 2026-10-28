@@ -95,5 +95,7 @@
   "evals/results/claude-calibrated-2026-10-26.csv",
   "docs/UPDATE_2026-10-26_ARGON.md",
   "evals/results/argon-text-screen-2026-10-26.csv",
-  "evals/results/argon-field-trials-2026-10-26.csv"
+  "evals/results/argon-field-trials-2026-10-26.csv",
+  "docs/UPDATE_2026-10-28_TERRA.md",
+  "docs/ACTIVE_ROUTING_2026-10-28.json"
 ]

@@ -2,6 +2,10 @@
 
 Public preview: `0.2.0-rc.2`. The initial preview `0.2.0-rc.1` was prepared and authorized for GitHub publication on 2026-09-21. Repository: [thebeefasaurusrex/teamloop](https://github.com/thebeefasaurusrex/teamloop).
 
+## October 28, 2026 accepted local Terra migration
+
+The [Terra operating update](UPDATE_2026-10-28_TERRA.md) and [sanitized local snapshot](ACTIVE_ROUTING_2026-10-28.json) record policy `1.14.0`: active GPT-6.1 Terra Medium replaces GPT-5.6 Terra; GPT-6.1 Sol Medium remains lead and the pinned Claude specialist roles stay unchanged. The user accepted the move with included subscription savings explicitly unverified. Two matching text smokes and lower published Standard credit rates are bounded evidence, not a broad quality benchmark or measured subscription-saving ratio. The portable runtime has no old active Terra literal to replace and receives no personal default; package version is unchanged. Historical scores and snapshots remain frozen.
+
 ## October 26, 2026 Argon review evidence and final-watch correction
 
 The [Argon change record](UPDATE_2026-10-26_ARGON.md) separates the nine-primary frozen text screen from six current-work review attempts, preserves the failed Flash control without a quality score, and records Argon's reproduced final-watch finding. The process helper waits for pending/final watched-file checks before publishing completion, with bounded filesystem probes and existing stop precedence. Independent review and full release checks gate delivery. This is not proof of a live paid fallback or operational-tool escape. Argon remains an experimental evaluation candidate; production allowlists, package version and policy `1.13.0` are unchanged.

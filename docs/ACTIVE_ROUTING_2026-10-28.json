@@ -1,0 +1,49 @@
+{
+  "policyVersion": "1.14.0",
+  "effectiveAt": "2026-10-28",
+  "scope": "Author local operating configuration, not automatic portable defaults. Terra swap accepted with included subscription savings unverified.",
+  "lead": {
+    "provider": "codex",
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "external": false,
+    "use": "scope, implement, integrate, verify, adjudicate, and deliver"
+  },
+  "boundedBuilder": {
+    "provider": "codex",
+    "model": "gpt-6.1-terra",
+    "effort": "medium",
+    "external": false,
+    "use": "bounded operational and customer-facing implementation"
+  },
+  "critic": {
+    "provider": "claude",
+    "model": "claude-sonnet-5-5",
+    "effort": "high",
+    "external": true,
+    "use": "independent human-facing critique, requirements, accessibility, design coherence and selected complex synthesis; GPT-6.1 Sol verifies findings and retains final authority"
+  },
+  "architect": {
+    "provider": "claude",
+    "model": "claude-opus-5-5",
+    "effort": "high",
+    "external": true,
+    "use": "rare consequential architecture, product vision, and editorial synthesis where stronger failure sequences and false-positive control justify higher latency and Claude context use"
+  },
+  "design": {
+    "provider": "claude",
+    "model": "claude-opus-5-5",
+    "effort": "high",
+    "external": true,
+    "executionMode": "file-backed-claude-design",
+    "timeoutMs": 2700000,
+    "use": "selected ambitious interface/design ownership in an isolated worktree with literal file selection, incremental saves, small final receipt and deterministic verification; GPT-6.1 Sol owns scope, integration and final judgment",
+    "fallback": null
+  },
+  "excludedModels": ["gpt-6-sol"],
+  "paidOverflow": false,
+  "apiFallback": false,
+  "silentSubstitution": false,
+  "historicalSnapshot": "ACTIVE_ROUTING_2026-10-25.json",
+  "evidenceLimit": "Two matched text smokes identified the same two defects; exact requested pins but no independently returned backend identity. Credit rates do not establish included subscription savings."
+}
