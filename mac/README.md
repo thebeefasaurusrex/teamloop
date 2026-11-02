@@ -30,7 +30,7 @@ The package script produces `dist/TeamLoop.app` and `dist/TeamLoop-macos-arm64.z
 
 For Developer ID distribution, supply your own `SIGNING_IDENTITY` and `NOTARY_PROFILE` to the script. That path still needs successful notarization, stapling, Gatekeeper assessment and separate downloaded-app acceptance. No signing identity or notarization credentials are distributed here.
 
-The [Mac development workflow template](ci/mac-development.yml) can be installed as .github/workflows/mac-development.yml by a repository administrator. The published development artifact is built on the existing hosted macOS pipeline and checked against this public source export; its receipt records that boundary. Use only an explicitly labeled development download whose version and checksum match its published receipt. Do not treat an Actions upload alone as a consumer release.
+The [public Mac development workflow](../.github/workflows/mac-development.yml) builds and tests the app on hosted macOS runners. A [workflow template](ci/mac-development.yml) is also included. The existing 0.1.2 development release was built on the earlier hosted Mac pipeline and checked against this public source export; its receipt records that boundary. Later public Actions artifacts are separate builds with their own receipts and checksums. Use only an explicitly labeled development download whose version and checksum match its published receipt. Do not treat an Actions upload alone as a consumer release.
 
 The public preview has its own GitHub-based bundle/Keychain namespace. An earlier development build's app-owned saved keys are not automatically migrated. Official provider credentials remain managed by those tools; configure app-owned secrets again through the public app if needed.
 

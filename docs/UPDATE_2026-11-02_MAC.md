@@ -38,7 +38,9 @@ The strongest observed result is that native startup and part of onboarding work
 
 Only selected source, synthetic fixtures, general setup instructions and sanitized evidence are published. Private source history, raw build logs, account information, machine identifiers, screenshots and original task material are excluded. The public source and build do not include provider sessions, paid plans, credentials or a preconfigured email recipient.
 
-The development ZIP was produced by the existing hosted Mac pipeline, then checked against the public export. Its private build history is not republished. Installing the supplied workflow template as an active public workflow requires repository workflow permissions; this publication does not claim a public Actions run for the downloadable artifact.
+The original 0.1.2 development ZIP was produced by the existing hosted Mac pipeline, then checked against the public export. Its private build history is not republished. A separate [public Mac workflow](../.github/workflows/mac-development.yml) is now active and produces its own test evidence, archive, checksum and receipt. Its later builds do not retroactively change the provenance or checksum of the original release ZIP.
+
+The first [public Mac build](https://github.com/thebeefasaurusrex/teamloop/actions/runs/41478174569) passed all 130 core tests, 12 native tests, packaging, strict/deep ad-hoc signature verification, archive checks and receipt generation. The separate [general CI matrix](https://github.com/thebeefasaurusrex/teamloop/actions/runs/41478174476) also passed on Windows, macOS and Linux with Node 22 and 24.
 
 The current Swift 5 language-mode build also retains a known Swift 6 migration warning in the bridge. A download labeled development should remain labeled development until signing and actual-device release gates pass.
 
