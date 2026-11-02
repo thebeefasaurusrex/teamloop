@@ -1,6 +1,7 @@
 [
   ".gitattributes",
   ".github/workflows/ci.yml",
+  ".github/workflows/mac-development.yml",
   ".gitignore",
   ".prettierignore",
   ".prettierrc.json",

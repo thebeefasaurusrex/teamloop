@@ -24,7 +24,7 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - name: Regression tests
-        run: node --test
+        run: npm test
       - name: No-account demo
         run: node scripts/demo.mjs
       - name: Release allowlist and screening

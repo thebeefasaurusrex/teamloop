@@ -1,0 +1,57 @@
+name: Mac development build
+on:
+  workflow_dispatch:
+  push:
+    paths: ['mac/**', '.github/workflows/mac-development.yml']
+  pull_request:
+    paths: ['mac/**', '.github/workflows/mac-development.yml']
+permissions:
+  contents: read
+concurrency:
+  group: mac-development-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  validate:
+    runs-on: macos-15
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: mac
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Portable Mac core tests
+        run: node --test tests/*.test.mjs | tee "$RUNNER_TEMP/teamloop-mac-tests.tap"
+      - name: Source audit
+        run: node tools/audit.mjs
+      - name: Native compile and unit tests
+        run: swift test 2>&1 | tee "$RUNNER_TEMP/teamloop-native-tests.log"
+      - name: Shell syntax
+        run: bash -n scripts/fetch-runtime.sh scripts/package-macos.sh
+      - name: Assemble Apple Silicon development app
+        run: bash scripts/package-macos.sh
+      - name: Bundle verification and checksum
+        run: |
+          dist/TeamLoop.app/Contents/Resources/runtime/node --jitless --version
+          file dist/TeamLoop.app/Contents/MacOS/TeamLoopMac
+          codesign --verify --strict --deep dist/TeamLoop.app
+          unzip -tq dist/TeamLoop-macos-arm64.zip
+          cd dist
+          shasum -a 256 TeamLoop-macos-arm64.zip > SHA256SUMS.txt
+      - name: Machine-readable public build receipt
+        env:
+          TEAMLOOP_CORE_TAP: ${{ runner.temp }}/teamloop-mac-tests.tap
+          TEAMLOOP_NATIVE_LOG: ${{ runner.temp }}/teamloop-native-tests.log
+        run: node tools/build-receipt.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TeamLoop-Mac-0.1.2-development-not-notarized
+          retention-days: 7
+          path: |
+            mac/dist/TeamLoop-macos-arm64.zip
+            mac/dist/BUILD-STATUS.txt
+            mac/dist/SHA256SUMS.txt
+            mac/dist/PUBLIC-BUILD.json
