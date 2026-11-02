@@ -1,0 +1,12 @@
+{
+  "account": { "account": { "type": "chatgpt", "email": "person@example.test", "planType": "plus" } },
+  "limits": {
+    "rateLimitsByLimitId": {
+      "codex": {
+        "limitId": "codex",
+        "primary": { "usedPercent": 51, "windowDurationMins": 300, "resetsAt": 1900003600 },
+        "secondary": { "usedPercent": 76, "windowDurationMins": 10080, "resetsAt": 1900600000 }
+      }
+    }
+  }
+}

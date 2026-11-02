@@ -1,0 +1,9 @@
+.build/
+.build-macos/
+.runtime-cache/
+dist/
+.DS_Store
+*.xcuserstate
+verification/*.log
+cloud-artifact*/
+cloud-build-*.log

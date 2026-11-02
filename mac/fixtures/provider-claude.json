@@ -1,0 +1,11 @@
+{
+  "provider": "claude",
+  "version": "fixture",
+  "source": "claude",
+  "usage": {
+    "primary": { "usedPercent": 28, "windowMinutes": 300, "resetsAt": "2030-03-17T18:46:40Z" },
+    "secondary": { "usedPercent": 59, "windowMinutes": 10080, "resetsAt": "2030-03-24T18:46:40Z" },
+    "updatedAt": "2030-03-17T17:46:40Z",
+    "identity": { "providerID": "claude", "accountEmail": "person@example.test" }
+  }
+}

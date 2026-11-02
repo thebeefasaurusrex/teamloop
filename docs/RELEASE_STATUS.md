@@ -1,5 +1,9 @@
 # Portable release status
 
+## November 2 Mac development preview
+
+The separate [Mac application source](../mac/README.md), [setup guide](../mac/SETUP.md) and [engineering field note](UPDATE_2026-11-02_MAC.md) are published alongside this toolkit. Mac app version 0.1.2 is separate from portable package version 0.2.0-rc.2. The Mac target is Apple Silicon/macOS 14+; its development bundle is ad-hoc signed, not notarized. The [public build receipt](../mac/verification/PUBLIC-BUILD.json) records the exact release state. Real provider/quota, clean-account, notification, lifecycle and email acceptance remain open. The portable roster and historical scores are unchanged.
+
 Public preview: `0.2.0-rc.2`. The initial preview `0.2.0-rc.1` was prepared and authorized for GitHub publication on 2026-09-21. Repository: [thebeefasaurusrex/teamloop](https://github.com/thebeefasaurusrex/teamloop).
 
 ## October 28, 2026 matched host-action design evidence
