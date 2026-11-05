@@ -44,3 +44,5 @@ Inspect the digest that `run`, `status` and `plan run` print; open the full reco
 Adjudicate important findings as accepted, rejected with evidence, or unresolved. Only the lead edits the actual project. Keep a short decision file in the user's task workspace: objective, source revision/packet, accepted decisions, unresolved risks, checks performed, and next action. Keep local run records private. There is no automatic cross-model memory synchronization or background daemon.
 
 When reporting, name who contributed, what changed because of their contribution, what was actually checked, and any failure or uncertainty. If the team added no value, say so.
+
+For new reviewer specs, set `freezeInputs: true` to capture selected inputs separately from writable source notes. Review applies to the captured revision only; snapshot integrity and live-mode freshness guards remain enforced. See the operating reference for disposable Godot verification, bounded full diagnostics and metadata-only Claude progress.

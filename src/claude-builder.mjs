@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
+import { copyVerificationTree, diagnosticExcerpt, assertVerificationInputsUnchanged } from './verification-isolation.mjs';
 import { randomUUID } from 'node:crypto';
 import { resolveExecutionMode, selectStandardMode } from './execution-mode.mjs';
 import {
@@ -78,6 +79,7 @@ function validateSpec(spec, config, design = false) {
     if (!item || typeof item.command !== 'string' || !executableAllowlist.has(item.command) || !safeArgs || !safeTimeout)
       throw Error('Unsafe or unapproved verification command');
   }
+  if (spec.verificationIsolation !== undefined && !['copy', 'candidate'].includes(spec.verificationIsolation)) throw Error('Invalid verificationIsolation');
   return spec;
 }
 
@@ -406,6 +408,14 @@ async function runBoundedClaude(spec, config, { design = false, launch = execute
     const sourceStatus = await git(config, ['-C', repository, 'status', '--porcelain=v1', '--untracked-files=all']);
     await git(config, ['-C', repository, 'worktree', 'add', '--detach', worktree, spec.baseRevision], { timeoutMs: 180000 });
     if (design) await verifyDesignFiles(worktree, spec.allowedFiles);
+    const godotProject =
+      spec.allowedFiles.includes('project.godot') ||
+      (await fs.stat(path.join(worktree, 'project.godot')).then(
+        s => s.isFile(),
+        () => false,
+      ));
+    if (godotProject && spec.verificationIsolation === 'candidate') throw Error('Godot verification requires a disposable copy');
+    record.verificationIsolation = godotProject ? 'copy' : (spec.verificationIsolation ?? 'candidate');
     const env = cleanClaudeBuilderEnv();
     record.account = await claudeIdentity(config, env, launch);
     const deniedTools = [
@@ -520,21 +530,48 @@ async function runBoundedClaude(spec, config, { design = false, launch = execute
     const patchBefore = await git(config, ['-C', worktree, 'diff', '--binary', '--no-ext-diff', 'HEAD', '--']);
     if (design) await fs.writeFile(path.join(runDir, 'candidate.patch'), patchBefore);
     const verification = [];
+    const verificationCwd =
+      record.verificationIsolation === 'copy' ? await copyVerificationTree(worktree, path.join(runDir, 'verification-worktree')) : worktree;
+    record.verificationWorktree = verificationCwd;
     const summarize = entries => entries.map(entry => ({ command: entry.command, args: entry.args, exitCode: entry.exitCode, stopReason: entry.stopReason }));
     for (const item of spec.verification) {
-      const outcome = await launch(item.command, item.args, { cwd: worktree, env: cleanClaudeBuilderEnv(), timeoutMs: item.timeoutMs, maxBytes: 4194304 });
+      const outcome = await launch(item.command, item.args, {
+        cwd: verificationCwd,
+        env: cleanClaudeBuilderEnv(),
+        timeoutMs: item.timeoutMs,
+        maxBytes: 4194304,
+      });
+      const logIndex = verification.length + 1;
+      const stdout = redact(outcome.stdout),
+        stderr = redact(outcome.stderr);
+      const stdoutExcerpt = diagnosticExcerpt(stdout),
+        stderrExcerpt = diagnosticExcerpt(stderr);
+      const stdoutFile = `verification-${logIndex}.stdout.txt`,
+        stderrFile = `verification-${logIndex}.stderr.txt`;
+      await fs.writeFile(path.join(runDir, stdoutFile), stdout);
+      await fs.writeFile(path.join(runDir, stderrFile), stderr);
       verification.push({
         command: item.command,
         args: item.args,
         exitCode: outcome.code,
         stopReason: outcome.stopped,
-        stdout: redact(outcome.stdout).slice(0, 20000),
-        stderr: redact(outcome.stderr).slice(0, 20000),
+        stdout: stdoutExcerpt.text,
+        stderr: stderrExcerpt.text,
+        diagnostics: {
+          stdout: { ...stdoutExcerpt, text: undefined, file: stdoutFile, sha256: hash(stdout) },
+          stderr: { ...stderrExcerpt, text: undefined, file: stderrFile, sha256: hash(stderr) },
+          captureLimitBytes: 4194304,
+          captureStopped: outcome.stopped ?? null,
+        },
       });
       record.verification = summarize(verification);
       await atomicJson(path.join(runDir, 'verification.json'), verification);
       await publish();
       if (outcome.code !== 0 || outcome.stopped) throw Error('Deterministic verification failed');
+    }
+    if (record.verificationIsolation === 'copy') {
+      const tracked = (await git(config, ['-C', worktree, 'ls-files', '-z'])).split('\0').filter(Boolean);
+      await assertVerificationInputsUnchanged(worktree, verificationCwd, tracked);
     }
     const sourceStatusAfter = await git(config, ['-C', repository, 'status', '--porcelain=v1', '--untracked-files=all']);
     if (sourceStatusAfter !== sourceStatus) throw Error('Source checkout changed during isolated build');
