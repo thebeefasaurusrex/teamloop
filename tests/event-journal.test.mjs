@@ -5,7 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { openJournal } from '../src/event-journal.mjs';
 async function fixture(t, extra = {}) {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tl-journal-'));
+  const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'tl-journal-')));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
   const config = { observability: { enabled: true, root } };
   const journal = await openJournal(config, { taskId: 'safe-task', runId: 'safe-run', provider: 'codex' }, { fixtureRoot: root, ...extra });
@@ -23,7 +23,7 @@ test('invalid roots fail closed without raw errors', async () => {
 });
 
 test('ordinary task IDs with sk substring survive while actual token-shaped IDs are omitted visibly', async t => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tl-journal-ids-'));
+  const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'tl-journal-ids-')));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
   for (const taskId of ['task-1', 'risk-review', 'disk-cleanup', 'tokenizer-audit']) {
     const journal = await openJournal({ observability: { enabled: true, root } }, { taskId }, { fixtureRoot: root });
@@ -155,8 +155,8 @@ test('close is idempotent and later emits visibly lose coverage', async t => {
   assert.ok(journal.health().errorCodes.includes('emit-after-close'));
 });
 test('junction or symlink partition is rejected', async t => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'tl-journal-link-')),
-    target = await fs.mkdtemp(path.join(os.tmpdir(), 'tl-journal-target-'));
+  const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'tl-journal-link-'))),
+    target = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'tl-journal-target-')));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
   t.after(() => fs.rm(target, { recursive: true, force: true }));
   try {
