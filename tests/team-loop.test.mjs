@@ -331,3 +331,31 @@ test('native terminal inspection preserves policy, cancellation and timeout prec
   assert.equal(workerFailure({ code: 1, stdout, stderr: 'ordinary failure' }, 'codex'), 'Worker exited 1: ordinary failure');
   assert.equal(workerFailure({ code: 1, stdout: '', stderr: '' }, 'claude'), 'Worker exited 1');
 });
+
+test('snapshot review survives origin edits but rejects changes to captured text and images', async () => {
+  const root = await fs.mkdtemp(path.join(temp, 'snapshot-project-'));
+  await fs.writeFile(path.join(root, 'note.md'), 'Original selected evidence.');
+  await fs.writeFile(path.join(root, 'picture.png'), Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 0]));
+  const frozen = JSON.parse(
+    await fs.readFile(await prepare({ ...spec, id: 'snapshot-test', root, files: ['note.md'], images: ['picture.png'], freezeInputs: true }, config)),
+  );
+  assert.equal(frozen.payload.inputMode, 'snapshot');
+  assert.notEqual(frozen.root, root);
+  await fs.writeFile(path.join(root, 'note.md'), 'Lead adds new findings while the reviewer works.');
+  await fs.writeFile(path.join(root, 'picture.png'), Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 1]));
+  await checkPacket(frozen);
+  await fs.writeFile(path.join(frozen.root, 'picture.png'), Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 2]));
+  await assert.rejects(checkPacket(frozen), /Stale packet/);
+  await fs.writeFile(path.join(frozen.root, 'picture.png'), Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 0]));
+  await fs.writeFile(path.join(frozen.root, 'note.md'), 'tampered snapshot');
+  await assert.rejects(checkPacket(frozen), /Stale packet/);
+});
+test('snapshot refuses unsafe selections and preserves live input staleness', async () => {
+  await assert.rejects(prepare({ ...spec, id: 'bad-snapshot', freezeInputs: 'yes' }, config), /boolean/);
+  await assert.rejects(prepare({ ...spec, id: 'bad-snapshot', files: ['../escape.md'], freezeInputs: true }, config));
+  const root = await fs.mkdtemp(path.join(temp, 'live-project-'));
+  await fs.writeFile(path.join(root, 'brief.md'), 'original');
+  const live = JSON.parse(await fs.readFile(await prepare({ ...spec, id: 'live-contract', root }, config)));
+  await fs.writeFile(path.join(root, 'brief.md'), 'changed');
+  await assert.rejects(checkPacket(live), /Stale packet/);
+});
