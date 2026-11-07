@@ -18,7 +18,16 @@ export async function atomicJson(file, value) {
   await fs.mkdir(path.dirname(file), { recursive: true });
   const temporary = file + '.' + randomUUID() + '.tmp';
   await fs.writeFile(temporary, JSON.stringify(value, null, 2) + '\n', { flag: 'wx' });
-  await fs.rename(temporary, file);
+  // Windows can deny an atomic replacement while a reader holds the target open.
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await fs.rename(temporary, file);
+      return;
+    } catch (error) {
+      if (process.platform !== 'win32' || error.code !== 'EPERM' || attempt >= 3) throw error;
+      await new Promise(resolve => setTimeout(resolve, 25 * 2 ** attempt));
+    }
+  }
 }
 
 /** Path segments that are never selected as evidence or edited by a worker. */

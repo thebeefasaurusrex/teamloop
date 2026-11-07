@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import childProcess from 'node:child_process';
 import { syncBuiltinESMExports } from 'node:module';
-import { acquireLock, execute, redact, safeText, scanStrings } from '../src/shared.mjs';
+import { acquireLock, atomicJson, execute, readJson, redact, safeText, scanStrings } from '../src/shared.mjs';
 import { classifyFailure, decode, prepare } from '../src/team-loop.mjs';
 import { tempDir } from './helpers.mjs';
 
@@ -297,4 +297,28 @@ test('execute fails closed on stalled watch and cancel probes and ignores their 
     fs.readFile = originalRead;
     fs.access = originalAccess;
   }
+});
+
+test('atomic JSON retries Windows rename contention within a bounded number of attempts', { skip: process.platform !== 'win32' }, async t => {
+  const file = path.join(await tempDir('teamloop-atomic-json-'), 'status.json');
+  await atomicJson(file, { status: 'starting' });
+
+  const rename = fs.rename;
+  const denied = Object.assign(new Error('fixture: replacement denied'), { code: 'EPERM' });
+  const recoverable = t.mock.method(fs, 'rename', async (temporary, target) => {
+    assert.deepEqual(await readJson(target), { status: 'starting' });
+    if (recoverable.mock.callCount() <= 2) throw denied;
+    return rename(temporary, target);
+  });
+  await atomicJson(file, { status: 'running' });
+  assert.equal(recoverable.mock.callCount(), 3);
+  assert.deepEqual(await readJson(file), { status: 'running' });
+  recoverable.mock.restore();
+
+  const persistent = t.mock.method(fs, 'rename', async () => {
+    throw denied;
+  });
+  await assert.rejects(atomicJson(file, { status: 'completed' }), error => error === denied);
+  assert.equal(persistent.mock.callCount(), 4);
+  assert.deepEqual(await readJson(file), { status: 'running' });
 });
