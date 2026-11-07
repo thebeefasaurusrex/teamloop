@@ -6,6 +6,7 @@ import {
   checkGeminiSettings,
   enforceGeminiSettings,
   geminiEnv,
+  geminiIdentity,
   guardGeminiEvent,
   decodeGemini,
   ensureGeminiAgent,
@@ -15,7 +16,7 @@ import {
   resolveUserHome,
   geminiPrintTimedOut,
 } from '../src/antigravity.mjs';
-import { execute, cleanEnv, decode } from '../src/team-loop.mjs';
+import { execute, cleanEnv, decode, classifyFailure } from '../src/team-loop.mjs';
 
 test('CLI zero-exit SUCCESS with partial-output deadline is still a timeout', () => {
   assert.equal(geminiPrintTimedOut({ code: 0, stderr: '[agy] print timeout after 2m55s with turn in progress; returning partial output\n' }), true);
@@ -219,4 +220,34 @@ test('live log guard terminates the owned mock worker on discovery fallback', as
   });
   assert.equal(result.stopped, 'worker-policy-violation');
   assert.equal(result.policyError, 'discovery failed');
+});
+
+test('model-list timeout is distinguished from a failed command before any identity network check', async () => {
+  const home = await tempDir('teamloop-model-list-');
+  const antigravityHome = path.join(home, '.gemini', 'antigravity-cli');
+  await fs.mkdir(antigravityHome, { recursive: true });
+  await fs.writeFile(
+    path.join(antigravityHome, 'settings.json'),
+    JSON.stringify({
+      enableTelemetry: false,
+      toolPermission: 'strict',
+      permissions: { deny: ['read_file(*)', 'write_file(*)', 'read_url(*)', 'execute_url(*)', 'command(*)', 'unsandboxed(*)', 'mcp(*)'] },
+    }),
+  );
+  const config = { providers: { gemini: { enabled: true } }, antigravity: 'fixture', antigravityHome, antigravityFileLoginCompatibility: true };
+  await ensureGeminiAgent(config, { USERPROFILE: home }, true);
+  for (const stopped of ['timeout', null]) {
+    const seen = [];
+    await assert.rejects(
+      geminiIdentity(config, { USERPROFILE: home }, async (_command, [subcommand], options) => {
+        seen.push(subcommand);
+        assert.equal(options.timeoutMs, 20000);
+        if (subcommand === 'agents') return { code: 0, stdout: 'team-loop-reviewer team-loop-designer' };
+        return { code: 1, stopped };
+      }),
+      stopped ? /model-list preflight timeout/ : /model-list preflight failed/,
+    );
+    assert.deepEqual(seen, ['agents', 'models']);
+    if (stopped) assert.equal(classifyFailure('Antigravity model-list preflight timeout'), 'timeout');
+  }
 });

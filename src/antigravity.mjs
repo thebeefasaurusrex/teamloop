@@ -104,7 +104,8 @@ export async function geminiIdentity(config, env, execute) {
   await enforceGeminiSettings(config);
   // Remote-login mode selects the CLI's personal file credentials instead of the unrelated IDE keyring login.
   const refresh = await execute(config.antigravity, ['models'], { env: runtimeEnv, timeoutMs: 20000 });
-  if (refresh.code !== 0 || refresh.stopped) throw Error('Antigravity authentication refresh failed');
+  if (refresh.stopped === 'timeout') throw Error('Antigravity model-list preflight timeout');
+  if (refresh.code !== 0 || refresh.stopped) throw Error('Antigravity model-list preflight failed');
   await enforceGeminiSettings(config);
   const auth = JSON.parse(await fs.readFile(path.join(config.antigravityHome, 'antigravity-oauth-token'), 'utf8'));
   if (auth.auth_method !== 'consumer' || !auth.token?.access_token) throw Error('Antigravity consumer OAuth credentials required');

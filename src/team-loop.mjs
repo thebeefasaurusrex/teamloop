@@ -587,7 +587,7 @@ export async function loadImages(packet) {
 /** Diagnostic labels only. Order matters: specific runner outcomes first, provider-name matches last. */
 export function classifyFailure(message) {
   if (/policy violation|tool activity|worker-policy-violation/i.test(message)) return 'policy';
-  if (message === 'timeout') return 'timeout';
+  if (message === 'timeout' || message === 'Antigravity model-list preflight timeout') return 'timeout';
   if (message === 'output-limit') return 'runner-output-limit';
   if (/budget exhausted/i.test(message)) return 'attempt-budget';
   if (/authentication|identity|login|OAuth|subscription|attestation|overflow-off|allowed .*account/i.test(message)) return 'authentication';
