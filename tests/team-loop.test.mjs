@@ -55,6 +55,49 @@ test('explicit file packet has stable content hash', async () => {
   await checkPacket(packet);
   assert.equal(await prepare(spec, config), packetFile);
 });
+test('concurrent prepares publish one complete packet and clean up temporary files', async () => {
+  const concurrent = { ...spec, id: 'concurrent-prepare' };
+  const files = await Promise.all(Array.from({ length: 6 }, () => prepare(concurrent, config)));
+  assert.equal(new Set(files).size, 1);
+  await checkPacket(JSON.parse(await fs.readFile(files[0], 'utf8')));
+  assert.deepEqual(await fs.readdir(path.dirname(files[0])), ['packet.json']);
+});
+
+test('prepare repairs a legacy truncated packet but preserves unrelated corruption', async () => {
+  const interrupted = { ...spec, id: 'interrupted-prepare' };
+  const file = await prepare(interrupted, config);
+  const expected = await fs.readFile(file, 'utf8');
+  await fs.writeFile(file, expected.slice(0, 35));
+  assert.equal(await prepare(interrupted, config), file);
+  assert.equal(await fs.readFile(file, 'utf8'), expected);
+  const unrelated = '{ "unrelated": true }';
+  await fs.writeFile(file, unrelated);
+  await assert.rejects(prepare(interrupted, config), /expected hash/);
+  assert.equal(await fs.readFile(file, 'utf8'), unrelated);
+});
+
+test('artifact screening rejects common external resource loads and permits inline assets', () => {
+  const validate = markup =>
+    validateArtifact({ ...artifact, artifact: { ...artifact.artifact, content: '<!doctype html><html>' + markup + '</html>' } }, artifactPacket.packetHash);
+  for (const markup of [
+    '<img srcset="data:image/png;base64,AA== 1x, https://example.test/image.png 2x">',
+    '<link imagesrcset="//example.test/image.png 1x">',
+    '<img src=https://example.test/image.png>',
+    '<style>body { background: url(https://example.test/image.png) }</style>',
+    '<style>@import "//example.test/theme.css";</style>',
+    '<style>@import url("file:///theme.css");</style>',
+    '<meta content="0;url=https://example.test/" http-equiv="refresh">',
+    '<form action="https://example.test/"></form>',
+    '<object data="https://example.test/"></object>',
+    '<script>navigator.sendBeacon("https://example.test/")</script>',
+  ]) {
+    assert.throws(() => validate(markup), /self-contained/, markup);
+  }
+  assert.doesNotThrow(() =>
+    validate('<img srcset="data:image/png;base64,AA== 1x"><style>svg { fill: url(#paint) }</style><svg><use href="#icon"></use></svg>'),
+  );
+});
+
 test('task timeout is packet-bound, defaulted, and capped', async () => {
   assert.equal(packet.payload.timeoutMs, 180000);
   const deep = JSON.parse(await fs.readFile(await prepare({ ...spec, id: 'deep-timeout', timeoutMs: 720000 }, config), 'utf8'));

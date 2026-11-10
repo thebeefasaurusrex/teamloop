@@ -149,11 +149,27 @@ export async function prepare(spec, config) {
   const folder = path.join(config.stateRoot, 'packets', spec.id, packetHash);
   await fs.mkdir(folder, { recursive: true });
   const file = path.join(folder, 'packet.json');
+  const value = { root, packetHash, payload };
+  const serialized = JSON.stringify(value, null, 2) + '\n';
+  const temporary = path.join(folder, randomUUID() + '.tmp');
   try {
-    await fs.writeFile(file, JSON.stringify({ root, packetHash, payload }, null, 2) + '\n', { flag: 'wx' });
+    await fs.writeFile(temporary, serialized, { flag: 'wx' });
+    // A hard link publishes the complete file without replacing a concurrent winner.
+    await fs.link(temporary, file);
   } catch (error) {
     if (error.code !== 'EEXIST') throw error;
-    await checkPacket(await readJson(file));
+    const existing = await fs.readFile(file);
+    const expected = Buffer.from(serialized);
+    // Older runners could leave a byte prefix at the final path after interruption.
+    if (existing.length < expected.length && expected.subarray(0, existing.length).equals(existing)) {
+      await atomicJson(file, value);
+    } else {
+      const stored = JSON.parse(existing.toString('utf8'));
+      if (stored.packetHash !== packetHash) throw Error('Existing packet does not match its expected hash');
+      await checkPacket(stored);
+    }
+  } finally {
+    await fs.rm(temporary, { force: true });
   }
   return file;
 }
@@ -278,10 +294,14 @@ export function validateArtifact(value, packetHash, maxArtifactBytes = 131072) {
   if (!safeName || mediaType !== 'text/html' || !completeDocument) throw Error('Invalid artifact');
   if (!Number.isSafeInteger(maxArtifactBytes) || Buffer.byteLength(content) > maxArtifactBytes)
     throw Error(`Artifact exceeds the disclosed ${maxArtifactBytes}-byte limit`);
-  // Delivery-format check for obvious external references only; this is not an HTML sanitizer.
-  const externalReference = /(?:src|href)\s*=\s*["'](?:https?:|\/\/|file:)/i.test(content);
-  const networkCall = /\b(?:fetch|XMLHttpRequest|WebSocket|EventSource)\s*\(/.test(content);
-  if (externalReference || networkCall) throw Error('Artifact must be self-contained');
+  // Screen common delivery-format violations. Treat generated HTML as untrusted active content.
+  const externalAttribute = /(?:^|[\s<])(?:src|href|poster|action|formaction|data)\s*=\s*["']?\s*(?:https?:|\/\/|file:)/i.test(content);
+  const sourceSets = content.matchAll(/(?:^|[\s<])(?:srcset|imagesrcset)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi);
+  const externalSourceSet = [...sourceSets].some(match => /(?:^|,)\s*(?:https?:|\/\/|file:)/i.test(match[1] ?? match[2] ?? match[3]));
+  const externalCss = /(?:\burl\(\s*["']?|@import\s*["'])\s*(?:https?:|\/\/|file:)/i.test(content);
+  const externalRefresh = /<meta\b[^>]*\bhttp-equiv\s*=\s*["']?refresh\b[^>]*>/i;
+  const networkCall = /\b(?:fetch|XMLHttpRequest|WebSocket|EventSource|sendBeacon)\s*\(/.test(content);
+  if (externalAttribute || externalSourceSet || externalCss || externalRefresh.test(content) || networkCall) throw Error('Artifact must be self-contained');
   return value;
 }
 
