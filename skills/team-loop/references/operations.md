@@ -12,6 +12,8 @@ Only the four included transport implementations are recognized: Codex CLI, Clau
 
 Configure actual executable paths when command discovery is ambiguous. On Windows, `.cmd` and `.bat` shims are not automatically launched by this shell-free runner. Use a supported native executable; do not add a shell fallback merely to make a wrapper work.
 
+For a first run, follow the [single-provider Codex quickstart](https://github.com/thebeefasaurusrex/teamloop#run-your-first-live-review) from a clone of the public repository. It uses the bundled synthetic review and shows how to find the saved receipt.
+
 ## CLI
 
 From the repository, use `node src/team-loop.mjs`. In an installed skill, use `node <skill-directory>/scripts/run.mjs`. Quote paths with spaces.

@@ -6,178 +6,71 @@
   <img src="brand/assets/teamloop-horizontal-light.png" alt="TeamLoop: Assembly Cinch symbol and Arcade wordmark" width="660">
 </picture>
 
-**One conversation. A deliberately small team. Evidence before agreement.**
-
-TeamLoop is a local orchestration toolkit for using multiple AI subscriptions and optional specialist providers from a workflow led in Codex or Claude Code. It helps the lead decide when another model is worth involving, send it a focused brief, preserve what happened, and verify the useful parts before changing the project.
-
-Created by **Mark Salisbury with Codex**. Inspired by [Claudex Loop](https://github.com/chaseai-yt/claudex-loop), implemented as a separate system. The starting question was practical: how do I use the subscriptions I already pay for without becoming the human API between three chat windows?
-
-This is a **public preview**, extracted from a working personal setup. The portable core is tested with local fixtures. Live provider compatibility must be checked for your own account, CLI version, and platform. It is not a universal model leaderboard, a new chat app, or a claim of guaranteed token savings.
-
-The [November 2 Mac development preview](docs/UPDATE_2026-11-02_MAC.md) adds a separate [SwiftUI/menu-bar app and bundled Node core](mac/README.md), targeting **Apple Silicon and macOS 14+**. The source, setup guide and Mac build workflow are public. It is an ad-hoc-signed development preview, not Apple-notarized or a claim of completed real-account acceptance. Its Mac-specific policy does not change the portable runner's roster or historical model scores.
-
-The [October 28 matched host-action design trial](docs/UPDATE_2026-10-28_DESIGN.md) preserves the original console brief in a separate workflow with the same file actions. Opus 5.5 High scored **91** and Argon Medium **69**; both completed, while Argon retained evidence-fidelity, score-bound and verdict-label defects. Two unchanged examples are linked from Frontier. This evidence does not promote Argon or change policy **1.14.0**, 6.1 Sol as lead, active Terra 6.1 or the pinned Claude roles.
-
-The [October 28 Terra operating update](docs/UPDATE_2026-10-28_TERRA.md) records the accepted active migration to **GPT-6.1 Terra Medium** under local policy **1.14.0**, while **GPT-6.1 Sol Medium stays lead**. Published Standard credit rates are lower, but included subscription savings remain unverified. Historical GPT-5.6 Terra results and dated snapshots stay unchanged; the portable runtime does not install personal model defaults.
-
-The [October 26 Argon current-work trials](docs/UPDATE_2026-10-26_ARGON.md) add nine frozen text comparisons, six current-work attempts and a reproduced final-watch process-helper correction. Argon won both delivered current-work pairs; the failed Flash control stays unscored. Argon remains candidate-only, with GPT-6.1 Sol lead and pinned Claude roles unchanged.
-
-The [October 26 runtime and completed-build update](docs/UPDATE_2026-10-26.md) adds bounded pre-redaction design receipts, EOF screening, and a separate 15-artifact quality calibration with five more unchanged examples on Frontier Field Notes. GPT-6.1 Sol remains local lead; historical grades and failed attempts stay preserved.
-
-The [October 25 results and recovery record](docs/UPDATE_2026-10-25.md) adds the original-test replay, Claude continuation audit, file-backed pilots and Haiku versus GPT-6.1 feature trial, with a sanitized 65-row results export and nine live example apps. The author now chooses **GPT-6.1 Sol Medium as local lead and excludes GPT-6 Sol from active routing**. This is an operator decision, not a universal ranking; historical scores remain unchanged. That release used local operating policy **1.13.0, effective October 25, 2026**, separate from this toolkit's package version. A later explicit activation adds the selected file-backed Opus 5.5 design command with a full 45-minute window and pinned Sonnet/Opus profiles. That dated activation used policy **1.13.0**, effective October 25,2026. The new portable design profile ships disabled; personal accounts and automatic roster defaults are not installed.
-
-The October 22 repair clarifies Gemini's schema-only completion protocol and rejects CLI deadline-truncated output even when it reports success. See the [October 22 change record](docs/UPDATE_2026-10-22.md). The October 21 synchronization adds Claude Code as a supported lead: the same runner, packets and guardrails, installed as a Claude Code skill. See the [October 21 change record](docs/UPDATE_2026-10-21.md). The October 12 synchronization added required-evidence manifests, deliberate line slices with parent-file integrity, and receipt visibility improvements. See [portable and local capability boundaries](docs/LOCAL_CAPABILITY_BOUNDARIES.md) before treating field-study behavior as installed functionality.
-
-The [observability guide](docs/OBSERVABILITY.md) covers optional run measurements, local journal search, offline reference token counts and subscription report parsing.
-
-## What is it, actually?
-
-| Part | What it does | What it is made of |
-| --- | --- | --- |
-| Control room | You talk to the lead; the lead owns the final decision | Your Codex conversation |
-| Skill | Tells the lead how to scope, route, brief and adjudicate | A short Markdown instruction file and operating reference |
-| Router | Suggests an eligible worker for each requested role | Deterministic JavaScript plus your JSON roster |
-| Execution plan | Freezes dependencies, failure behavior and concurrency before dispatch | Strict versioned JSON with typed review stages |
-| Runner | Starts a bounded job and checks its delivery | Local Node.js scripts and provider adapters |
-| Shared context | Gives reviewers the same selected evidence | Hashed JSON packets, not a hidden shared brain |
-| Receipts | Keeps attempts, lifecycle events, outputs, timings and failures | Local files, not a hosted database |
-
-The lead does the judgment. The runner does the plumbing. Your existing provider software still performs the model call. Nothing in this repo runs continuously in the background.
-
-```text
-Your request in Codex
-  -> Lead scopes the task and runs useful deterministic checks
-  -> Router recommends a small team from your configured roster
-  -> A typed execution plan freezes dependencies and failure behavior
-  -> Runner sends frozen evidence packets and records lifecycle events
-  -> Lead checks findings, resolves disagreements and edits the project
-  -> You get the result, material contributions and verification limits
-```
-
-## Why bother?
-
-Some jobs need a different eye. Some need a narrow code review. Some need adversarial questions before an expensive build. Others need one local test and no additional model at all.
-
-TeamLoop supports parallel work across providers, independent verification, and smaller context handoffs. Those can improve throughput and reduce redundant reading. They can also add coordination cost. The useful test is whether the team helped finish the job better, not whether more models appeared in the transcript.
-
-You can request a red team for any scoped task. That does not make the result correct. Each important finding still needs evidence, and the lead still has to make the call.
+TeamLoop is a local-first toolkit for running bounded AI reviews from Codex or Claude Code. You talk to one lead. It selects the evidence, hands a focused task to a reviewer, and checks the returned findings before acting on them.
 
 ## Try it without accounts
 
-Use Node.js 22 or newer. Clone this repository, open its folder, and run:
+With Node.js 22 or newer:
 
 ```sh
 git clone https://github.com/thebeefasaurusrex/teamloop.git
 cd teamloop
-node --test --test-concurrency=1
-node scripts/demo.mjs
-node scripts/check-release.mjs
+npm run demo
 ```
 
-There are **no runtime dependencies to install** and these commands make **no model or authentication calls**. The demo freezes a real example packet, runs one typed execution plan through a local mock worker, validates the structured response, and saves the plan, lifecycle events, and worker record in a printed temporary directory. It intentionally returns a blocked review: the plumbing worked, but no AI actually reviewed the task. The demo directory is retained for inspection. Test fixtures are removed when the suite finishes unless you set `TEAMLOOP_KEEP_FIXTURES=1`.
+The demo runs a fixture through a real local child process and prints the plan, event ledger, and saved review location. Expect a completed stage with a `blocked` review. The runner delivered a fixture and no model was called.
 
-The same three commands run in CI on Linux, macOS and Windows with Node 22 and 24, alongside a Prettier formatting check.
+## Run your first live review
 
-### What a run looks like
+The smallest live example uses Codex CLI, an existing ChatGPT subscription login, and the bundled synthetic CSV review. See the [adapter compatibility record](docs/RELEASE_STATUS.md#adapter-compatibility) for the exact tested combination.
 
-The demo produces three kinds of receipt. First, the plan, viewable before dispatch as Graphviz DOT:
+1. Set `CODEX_HOME` to a dedicated local directory. Use `export CODEX_HOME=/path/to/teamloop-codex` in a POSIX shell or `$env:CODEX_HOME = 'C:/path/to/teamloop-codex'` in PowerShell. Run `codex login` and choose ChatGPT sign-in. Confirm `codex login status` reports ChatGPT login.
+2. Copy `config/providers.example.json` to `config/my.local.json`. Set `codexHome` to that same directory, set `providers.codex.enabled` to `true`, and put your signed-in email in `providers.codex.allowedAccounts`. The example already lists `gpt-6.1-sol` with `medium` effort. If your CLI or subscription uses a different model, update that model entry and the command below together. Use the executable name `codex` when it resolves directly, or set the top-level `codex` field to the executable's full path.
+3. Prepare the packet, then replace `PACKET_PATH` with the path printed by the first command.
 
-```dot
-digraph TeamLoopPlan {
-  rankdir=LR;
-  "mock-review" [label="mock-review\nNo-network fixture review\nmock/fixture\nrequired"];
-}
+```sh
+node src/team-loop.mjs prepare examples/task.json config/my.local.json
+node src/team-loop.mjs run "PACKET_PATH" codex gpt-6.1-sol medium config/my.local.json
+node src/team-loop.mjs status --task export-review config/my.local.json
 ```
 
-Second, the NDJSON lifecycle ledger written to stdout and retained under `plan-runs/<plan-run-id>/events.ndjson`. It carries identifiers and outcomes, never packet contents or prompts:
-
-```json
-{"schemaVersion":1,"timestamp":"2026-09-22T02:32:55.321Z","planRunId":"44f3bed2-â€¦","taskId":"demo-plan","event":"run_started","policyVersion":"demo-1","planHash":"f9cdd881â€¦","maxConcurrency":1,"stageCount":1}
-{"schemaVersion":1,"timestamp":"2026-09-22T02:32:55.322Z","planRunId":"44f3bed2-â€¦","taskId":"demo-plan","event":"stage_started","stageId":"mock-review","provider":"mock","model":"fixture","effort":"default","failureMode":"required"}
-{"schemaVersion":1,"timestamp":"2026-09-22T02:32:55.426Z","planRunId":"44f3bed2-â€¦","taskId":"demo-plan","event":"stage_finished","stageId":"mock-review","status":"completed","workerRunId":"36a9f846-â€¦","packetHash":"923ad83bâ€¦","verdict":"blocked"}
-{"schemaVersion":1,"timestamp":"2026-09-22T02:32:55.432Z","planRunId":"44f3bed2-â€¦","taskId":"demo-plan","event":"run_finished","status":"completed","elapsedMs":114,"leadDecisionRequired":true,"stages":[{"id":"mock-review","status":"completed","workerRunId":"36a9f846-â€¦"}]}
-```
-
-Third, the worker's structured output, validated against a schema bound to the packet hash and saved as `runs/<worker-run-id>/review.json`. A real reviewer returns `approve`, `revise` or `blocked` with evidence-backed findings; the fixture returns the honest answer for a run where no model was called:
-
-```json
-{
-  "packetHash": "923ad83b3928be2e7296ed1cca57ff7d6bafe6f48e8be60e228279c5ace38e5c",
-  "verdict": "blocked",
-  "summary": "The runner delivered this fixture successfully. A real review has not happened.",
-  "findings": [],
-  "uncertainties": ["No model was called. The lead must perform or commission a real review."]
-}
-```
+A delivered review reports `status: completed` and a `files.review` path. Open that JSON file and verify its findings against `examples/brief.md` and `examples/export.mjs`. The runner checks delivery and packet integrity. The lead owns the judgment. If the attempt fails, start with `failureClass` in the receipt and see the [operating reference](skills/team-loop/references/operations.md) for setup and recovery.
 
 ## Use it from Codex or Claude Code
 
-Install the self-contained skill for the lead you use:
+Install the skill for your lead:
 
 ```sh
-node scripts/install-skill.mjs                 # Codex lead
-node scripts/install-skill.mjs --host claude   # Claude Code lead
+node scripts/install-skill.mjs
+node scripts/install-skill.mjs --host claude
 ```
 
-By default this targets the `team-loop` folder in your Codex skills directory (`CODEX_HOME`, default `~/.codex`) or, with `--host claude`, your Claude Code skills directory (`CLAUDE_CONFIG_DIR`, default `~/.claude`). Both installs carry the same runner and operating reference; only the lead's instructions differ. The Claude Code lead prefers a reviewer from a different model family and does not use the Claude Bridge, which is a Codex-led builder path. **It refuses to overwrite an existing installation.** For a safe trial, use `--dest` with an explicit new folder. Load that skill in your Codex or Claude Code environment according to its local skill-discovery behavior. Installation does not log in or alter provider settings.
+Choose the command for your host. The installer uses that host's skills directory and refuses to overwrite an existing installation. Use `--dest` to test in a new directory. The [operating reference](skills/team-loop/references/operations.md) covers discovery and provider configuration.
 
-Copy `config/providers.example.json` to a private `.local.json` file and configure only the providers you intend to use. All real providers ship disabled. Add verified model IDs and reasoning efforts to their allowlists. Copy the example roster to another `.local.json` file and choose the models for your roles. Account access, remaining capacity, and subscription entitlements are not inferred from a brand name.
+Copy `config/roster.example.json` to `config/roster.local.json`, then set the model and effort for the roles you want to use. Give the lead your private config and roster paths and ask it to use TeamLoop for a focused review.
 
-Then ask naturally:
+## How it works
 
-> Use TeamLoop to review this feature. Run the existing checks first. Bring in an independent reviewer if the remaining risk warrants it. Keep the team to two workers, show me what they caught, and you make the final call.
-
-On first use, give the lead your private config and roster paths. After that, you should not need a spellbook of model invocations. The exact commands, setup gates and recovery steps live in the [operating reference](skills/team-loop/references/operations.md).
-
-## Inspect a team run before dispatch
-
-TeamLoop execution plans are a narrow orchestration contract for already prepared review packets. They are not generic task-runner files. A plan may name review stages, dependencies, a concurrency ceiling, and whether a failed review is required or advisory. It cannot contain shell commands, remote imports, automatic retries, fallback providers, or worker-authored actions.
-
-```sh
-node src/team-loop.mjs plan validate <plan.json> config/my.local.json
-node src/team-loop.mjs plan show <plan.json> config/my.local.json
-node src/team-loop.mjs plan graph <plan.json> config/my.local.json
-node src/team-loop.mjs plan run <plan.json> config/my.local.json
-node src/team-loop.mjs plan status config/my.local.json
+```text
+Lead scopes the task → Router proposes reviewers → Runner dispatches hashed evidence
+→ Worker returns a structured review → Lead verifies findings and decides what to change
 ```
 
-`plan run` writes schema-versioned NDJSON lifecycle events to stdout and retains the resolved plan, status, and event ledger under the configured state directory. Events identify stages and worker run records without copying packet contents, prompts, raw provider output, credentials, or account identities. Completed execution means the configured worker stages reached terminal states. The lead still has to inspect the reviews, adjudicate disagreements, and decide whether anything should change.
-
-## Bring your own lineup
-
-Roles, model IDs, efforts, account allowlists, availability and run budgets are configuration. No particular model generation is the product. The example role choices are teaching examples, not performance rankings.
-
-Included preview adapters connect to Codex CLI, Claude Code CLI, Gemini through Antigravity CLI, and NVIDIA's API. Provider-specific authentication and protocol details still require maintenance. Adding a model to a supported transport is configuration; adding a new transport requires an adapter and tests. A chat subscription does not automatically entitle you to API calls.
-
-The lead can also use its existing local tools before dispatch. This public release does **not** install the author's whole toolbox, remote machines, personal policies, browser sessions, or private model evaluations.
-
-## Temporary Claude Bridge
-
-Standard mode remains canonical. Claude Bridge is an explicitly activated, expiring execution overlay, not a routing-policy rewrite.
-
-When active, the builder receives an exact base commit and a selected file list, works inside a detached Git worktree, and cannot commit, push, deploy, browse, use shell commands, use MCP, or spawn subagents. Deterministic verification runs outside Claude, and the resulting candidate stays unpromoted pending lead review. Invalid, disabled, unvalidated, changed-policy, or expired mode state all resolve back to standard.
-
-These controls bound the runner. They are not a universal security sandbox. See the [operating reference](skills/team-loop/references/operations.md) for activation, builder-spec and rollback commands.
-
-## Evidence and testing
-
-- [Field study and interactive build examples](https://frontier-model-routing-field-notes.netlify.app/): the personal experiment that informed the workflow, with limitations and attempt-level evidence.
-- [Evaluation kit](evals/README.md): a reusable protocol, fresh public example, attempt format and summary script. It does not reproduce private historical prompts or import old rankings into your roster.
-- `tests/`: software regression checks for the runner, configuration, routing, provider decoders, shared guards and isolated installation. They run in GitHub Actions on Linux, macOS and Windows. These are not evidence that one model is better than another.
-- [Release status](docs/RELEASE_STATUS.md): what has and has not been verified in this portable edition.
+Typed [execution plans](skills/team-loop/references/operations.md#execution-plans) add dependencies, required or advisory stages, and bounded concurrency. The [operating reference](skills/team-loop/references/operations.md) also covers packet size limits, evidence slices, run receipts, and the temporary Claude Bridge. Preview adapters support Codex CLI, Claude Code CLI, Gemini through Antigravity CLI, and NVIDIA's API.
 
 ## Guardrails and limits
 
-Explicit file selection, hashes, account checks, time/output caps, restricted worker invocations, no silent retries, no automatic paid fallback, and retained failures are built into the workflow. Model context is passed deliberately, not synced by scraping your chats.
+Every review starts with explicitly selected evidence, restricted provider invocations, and time and output limits. The 16-file, 1 MiB-per-file, and 2 MiB-packet caps bound evidence ingestion and disclosure. Use required evidence ranges to keep a larger review focused. The router limits each recommendation to three reviewers so each review can be adjudicated. A typed plan allows up to three concurrent stages, with one active run per provider, to bound simultaneous model calls.
 
-These controls are **not a universal sandbox**. Secret detection is incomplete. Images need human privacy review. Generated HTML is untrusted active content, not safe just because it passed format validation. Provider-specific restrictions may change. Raw local logs can still be sensitive. Read [SECURITY.md](SECURITY.md) before connecting real accounts.
+Keep local config, packets, and raw receipts private. Review source and images before disclosure. Treat generated HTML as active content and use an isolated browser with network access disabled when you need an offline preview. See [SECURITY.md](SECURITY.md).
 
 ## Project and release
 
-The system and a reusable evaluation method belong here. The linked site carries the historical case study. Your own accounts, current model roster, raw runs and private task data stay local.
+- [Release status and dated updates](docs/RELEASE_STATUS.md)
+- [Tests, demo, release and formatting checks](.github/workflows/ci.yml)
+- [Local observability](docs/OBSERVABILITY.md)
+- [Apple Silicon development preview](mac/README.md)
+- [Evaluation kit](evals/README.md) and [field study](https://frontier-model-routing-field-notes.netlify.app/)
+- [Brand kit](brand/README.md), [contributing](CONTRIBUTING.md), and [publication checklist](docs/PUBLISHING.md)
 
-TeamLoop software is licensed under [Apache 2.0](LICENSE). Copyright 2026 Mark Salisbury. The [NOTICE](NOTICE) records the project's attribution. Distributed copies and derivatives must meet the license's notice requirements; this is not a mandatory homepage badge or a royalty arrangement.
-
-The [brand reference kit](brand/README.md) includes logo assets, fonts, exact design values and copy-ready AI instructions. Download the folder and open `brand/index.html` for the visual guide. Font files retain their own OFL licenses; the kit's [license separation note](brand/licenses/README.md) does not grant a new public artwork or trademark license.
-
-See [ACKNOWLEDGMENTS.md](ACKNOWLEDGMENTS.md) for provenance and [CONTRIBUTING.md](CONTRIBUTING.md) for contribution expectations. The repository is [thebeefasaurusrex/teamloop](https://github.com/thebeefasaurusrex/teamloop). This remains a public preview, not a finished cross-platform product. See the [publication checklist](docs/PUBLISHING.md) and [release status](docs/RELEASE_STATUS.md).
+Created by Mark Salisbury with Codex, inspired by [Claudex Loop](https://github.com/chaseai-yt/claudex-loop). See [ACKNOWLEDGMENTS.md](ACKNOWLEDGMENTS.md), [LICENSE](LICENSE), and [NOTICE](NOTICE).

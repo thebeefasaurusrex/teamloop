@@ -1,5 +1,18 @@
 # Portable release status
 
+## Adapter compatibility
+
+Each row records the last live synthetic review verified for that adapter in the public runner. Fixture tests and installed CLI versions are tracked separately. A smoke covers the exact setup in its row.
+
+| Adapter | Last live smoke | Platform and CLI | Runner revision | Outcome |
+| --- | --- | --- | --- | --- |
+| Codex CLI | 2026-11-10 UTC | Windows 11, Node 22.23.4, codex-cli 0.167.0-alpha.3.2 | `253e1e4` | ChatGPT login, requested `gpt-6.1-sol` / `medium`. Bundled synthetic CSV review completed with verdict `revise` and two source-backed findings. The disabled Code Mode warning was recorded. |
+| Claude Code CLI | Unverified in this pass | n/a | n/a | Fixture coverage |
+| Gemini via Antigravity CLI | Unverified in this pass | n/a | n/a | Fixture coverage |
+| NVIDIA API | Unverified in this pass | n/a | n/a | Fixture coverage |
+
+The [live review quickstart](../README.md#run-your-first-live-review) uses the same synthetic packet. The two findings concerned the unused region filter and the lack of neutralization for formula-like CSV cells.
+
 ## November 2 Mac development preview
 
 The separate [Mac application source](../mac/README.md), [setup guide](../mac/SETUP.md) and [engineering field note](UPDATE_2026-11-02_MAC.md) are published alongside this toolkit. Mac app version 0.1.2 is separate from portable package version 0.2.0-rc.2. The Mac target is Apple Silicon/macOS 14+; its development bundle is ad-hoc signed, not notarized. The [public build receipt](../mac/verification/PUBLIC-BUILD.json) records the exact release state. Real provider/quota, clean-account, notification, lifecycle and email acceptance remain open. The portable roster and historical scores are unchanged.
