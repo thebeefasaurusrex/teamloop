@@ -1,3 +1,4 @@
+import { beginTelemetry } from './runner-telemetry.mjs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
@@ -396,6 +397,7 @@ async function runBoundedClaude(spec, config, { design = false, launch = execute
     worktree,
     startedAt: new Date(started).toISOString(),
   };
+  let trace;
   const publish = () => atomicJson(path.join(runDir, 'status.json'), record);
   try {
     await publish();
@@ -445,6 +447,11 @@ async function runBoundedClaude(spec, config, { design = false, launch = execute
           '\n' +
           claudeDesignCompletionInstructions
         : '');
+    if (config.observability?.enabled === true)
+      Object.assign(record, { provider: 'claude', requestedModel: record.requestedModel ?? config.claudeBridge.model });
+    trace = await beginTelemetry(config, record);
+    await trace.emit('run.started');
+    await trace.measure(prompt);
     await fs.writeFile(path.join(runDir, 'prompt.txt'), prompt);
     const args = [
       '-p',
@@ -494,6 +501,7 @@ async function runBoundedClaude(spec, config, { design = false, launch = execute
           }
         : {}),
     });
+    trace.capture(worker.stdout);
     await fs.writeFile(path.join(runDir, 'stdout.txt'), worker.stdout);
     await fs.writeFile(path.join(runDir, 'stderr.txt'), worker.stderr);
     record.exitCode = worker.code;
@@ -603,6 +611,7 @@ async function runBoundedClaude(spec, config, { design = false, launch = execute
   } finally {
     record.elapsedMs = Date.now() - started;
     record.finishedAt = new Date().toISOString();
+    await trace?.finish();
     try {
       await publish();
     } finally {

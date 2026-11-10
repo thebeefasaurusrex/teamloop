@@ -28,6 +28,8 @@ The [October 25 results and recovery record](docs/UPDATE_2026-10-25.md) adds the
 
 The October 22 repair clarifies Gemini's schema-only completion protocol and rejects CLI deadline-truncated output even when it reports success. See the [October 22 change record](docs/UPDATE_2026-10-22.md). The October 21 synchronization adds Claude Code as a supported lead: the same runner, packets and guardrails, installed as a Claude Code skill. See the [October 21 change record](docs/UPDATE_2026-10-21.md). The October 12 synchronization added required-evidence manifests, deliberate line slices with parent-file integrity, and receipt visibility improvements. See [portable and local capability boundaries](docs/LOCAL_CAPABILITY_BOUNDARIES.md) before treating field-study behavior as installed functionality.
 
+The [observability guide](docs/OBSERVABILITY.md) covers optional run measurements, local journal search, offline reference token counts and subscription report parsing.
+
 ## What is it, actually?
 
 | Part | What it does | What it is made of |
