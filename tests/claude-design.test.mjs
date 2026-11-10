@@ -316,3 +316,65 @@ test('design still rejects oversized aggregate native stream and preserves parti
   assert.ok(r.stdoutBytes <= 33554432);
   assert.equal(r.partialWorktreePreserved, true);
 });
+
+async function godotFixture(f) {
+  await fs.writeFile(path.join(f.repository, 'project.godot'), 'config_version=5\n');
+  for (const args of [
+    ['add', 'project.godot'],
+    ['commit', '-m', 'synthetic Godot marker'],
+  ])
+    assert.equal((await execute('git', args, { cwd: f.repository })).code, 0);
+  f.spec.baseRevision = (await execute('git', ['rev-parse', 'HEAD'], { cwd: f.repository })).stdout.trim();
+  return f;
+}
+test('Godot verifier generates UID only in disposable copy, preserving exact candidate', async () => {
+  const f = await godotFixture(await fixture());
+  f.spec.verification = [
+    { command: process.execPath, args: ['-e', "require('fs').writeFileSync('generated.gd.uid','uid://synthetic');console.log('verified')"], timeoutMs: 3000 },
+  ];
+  const r = await runClaudeDesign(f.spec, f.config, { launch: f.launch });
+  assert.equal(r.status, 'completed', r.error);
+  assert.equal(r.verificationIsolation, 'copy');
+  await assert.rejects(fs.access(path.join(r.worktree, 'generated.gd.uid')));
+  assert.equal(await fs.readFile(path.join(r.verificationWorktree, 'generated.gd.uid'), 'utf8'), 'uid://synthetic');
+  assert.ok(!r.changedFiles.includes('generated.gd.uid'));
+});
+test('Godot candidate verification override is rejected before worker call', async () => {
+  const f = await godotFixture(await fixture());
+  f.spec.verificationIsolation = 'candidate';
+  const r = await runClaudeDesign(f.spec, f.config, { launch: f.launch });
+  assert.equal(r.status, 'failed');
+  assert.match(r.error, /disposable copy/);
+  assert.equal(f.calls.length, 0);
+});
+test('failed noisy verifier retains terminal diagnostics, full files and explicit truncation', async () => {
+  const f = await fixture();
+  f.spec.verification = [
+    {
+      command: process.execPath,
+      args: ['-e', "console.log('IMPORT'.repeat(6000));console.error('ASSERTION FAILED: final diagnostic');process.exit(7)"],
+      timeoutMs: 3000,
+    },
+  ];
+  const r = await runClaudeDesign(f.spec, f.config, { launch: f.launch });
+  assert.equal(r.status, 'failed');
+  assert.match(r.error, /verification failed/);
+  const dir = path.join(f.config.stateRoot, 'builder-runs', r.runId),
+    v = JSON.parse(await fs.readFile(path.join(dir, 'verification.json')))[0];
+  assert.match(v.stderr, /ASSERTION FAILED/);
+  assert.equal(v.diagnostics.stdout.truncated, true);
+  assert.equal(v.diagnostics.stdout.omittedCharacters, v.diagnostics.stdout.totalCharacters - 20000);
+  assert.equal((await fs.readFile(path.join(dir, v.diagnostics.stdout.file), 'utf8')).length, v.diagnostics.stdout.totalCharacters);
+  assert.equal(v.exitCode, 7);
+});
+
+test('disposable verification cannot repair candidate inputs and pass a different artifact', async () => {
+  const f = await godotFixture(await fixture());
+  f.spec.verification = [
+    { command: process.execPath, args: ['-e', "require('fs').writeFileSync('index.html','self-repaired verifier copy')"], timeoutMs: 3000 },
+  ];
+  const r = await runClaudeDesign(f.spec, f.config, { launch: f.launch });
+  assert.equal(r.status, 'failed');
+  assert.match(r.error, /mutated a candidate input/);
+  assert.equal(await fs.readFile(path.join(r.worktree, 'index.html'), 'utf8'), '<!doctype html><html><body>candidate</body></html>');
+});

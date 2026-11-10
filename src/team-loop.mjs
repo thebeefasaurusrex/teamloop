@@ -1,3 +1,5 @@
+import { snapshotReviewInputs } from './review-snapshot.mjs';
+import { summarizeClaudeProgress } from './claude-progress.mjs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
@@ -106,12 +108,19 @@ export async function prepare(spec, config) {
   if (!Number.isSafeInteger(maxArtifactBytes) || maxArtifactBytes < 16384 || maxArtifactBytes > 1048576)
     throw Error('Artifact byte limit must be a whole number from 16384 to 1048576');
   if (kind !== 'artifact' && spec.maxArtifactBytes !== undefined) throw Error('Artifact byte limit is valid only for artifact tasks');
-  const { root, sources, manifest, report } = await evidenceForSpec(spec, config);
-  assertEvidence(report);
+  if (spec.freezeInputs !== undefined && typeof spec.freezeInputs !== 'boolean') throw Error('freezeInputs must be boolean');
+  const initialEvidence = await evidenceForSpec(spec, config);
+  assertEvidence(initialEvidence.report);
   const imagePaths = spec.images ?? [];
   if (!Array.isArray(imagePaths) || imagePaths.length > 8 || new Set(imagePaths).size !== imagePaths.length) throw Error('Specify 0-8 distinct images');
+  let root = initialEvidence.root;
   const images = await Promise.all(imagePaths.map(p => readImage(root, p)));
   if (images.reduce((sum, image) => sum + image.sizeBytes, 0) > 41943040) throw Error('Images exceed the 40 MiB packet limit');
+  const snapshot = spec.freezeInputs ? await snapshotReviewInputs(spec, config, { readSource, readImage, hash }) : null;
+  if (snapshot) root = snapshot.root;
+  const { sources, manifest, report } = snapshot ? await evidenceForSpec({ ...spec, root }, config) : initialEvidence;
+  assertEvidence(report);
+  for (const image of images) if ((await readImage(root, image.path)).sha256 !== image.sha256) throw Error('Image changed during snapshot');
   const dataClass = spec.dataClass ?? 'private';
   if (!['private', 'public', 'synthetic'].includes(dataClass)) throw Error('Invalid data class');
   const payload = {
@@ -121,6 +130,7 @@ export async function prepare(spec, config) {
     timeoutMs,
     ...(kind === 'artifact' ? { maxArtifactBytes } : {}),
     rootHash: hash(root),
+    ...(snapshot ? { inputMode: 'snapshot', originalRootHash: snapshot.originalRootHash } : {}),
     id: spec.id,
     assignment: spec.assignment,
     requirements: spec.requirements,
@@ -676,6 +686,7 @@ export async function run(packetFile, provider, model, config, effort = 'default
     record.status = 'running';
     await atomicJson(path.join(runDir, 'status.json'), record);
     const result = await execute(call.command, call.args, { ...call, cwd: runDir, timeoutMs, cancelFile: path.join(runDir, 'cancel.request') });
+    if (provider === 'claude') record.nativeProgress = summarizeClaudeProgress(result.stdout);
     await fs.writeFile(path.join(runDir, 'stdout.txt'), result.stdout);
     await fs.writeFile(path.join(runDir, 'stderr.txt'), result.stderr);
     record.exitCode = result.code;
