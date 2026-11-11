@@ -617,6 +617,7 @@ export async function loadImages(packet) {
 
 /** Diagnostic labels only. Order matters: specific runner outcomes first, provider-name matches last. */
 export function classifyFailure(message) {
+  if (/^cancelled(?: before worker start)?$/i.test(message)) return 'cancelled';
   if (/policy violation|tool activity|worker-policy-violation/i.test(message)) return 'policy';
   if (message === 'timeout' || message === 'Antigravity model-list preflight timeout') return 'timeout';
   if (message === 'output-limit') return 'runner-output-limit';
