@@ -16,7 +16,7 @@ import {
   resolveUserHome,
   geminiPrintTimedOut,
 } from '../src/antigravity.mjs';
-import { execute, cleanEnv, decode, classifyFailure } from '../src/team-loop.mjs';
+import { execute, cleanEnv, decode, classifyFailure, workerFailure } from '../src/team-loop.mjs';
 
 test('CLI zero-exit SUCCESS with partial-output deadline is still a timeout', () => {
   assert.equal(geminiPrintTimedOut({ code: 0, stderr: '[agy] print timeout after 2m55s with turn in progress; returning partial output\n' }), true);
@@ -249,5 +249,47 @@ test('model-list timeout is distinguished from a failed command before any ident
     );
     assert.deepEqual(seen, ['agents', 'models']);
     if (stopped) assert.equal(classifyFailure('Antigravity model-list preflight timeout'), 'timeout');
+  }
+});
+
+test('explicit early termination rejects valid reviews and structured finish fallbacks without stderr', () => {
+  const finish = {
+    event: 'step_update',
+    step_update: { step_index: 2, step_type: 'tool', tool_name: 'finish', tool_info: { name: 'finish', parameters: review }, state: 'DONE' },
+  };
+  for (const reason of ['print_timeout', 'interrupted', 'error', 'unknown_future_reason', false, 0, {}]) {
+    const terminal = { ...result, result: { ...result.result, finished_reason: reason } };
+    const expected = reason === 'print_timeout' ? /timeout/ : reason === 'interrupted' ? /cancelled/ : /ended before completion/;
+    for (const response of [JSON.stringify(review), 'not JSON']) {
+      const stdout = lines([init, user, finish, { ...terminal, result: { ...terminal.result, response } }]);
+      assert.throws(() => decodeGemini(stdout, model), expected);
+      assert.throws(() => decode('gemini', stdout, 'abc', model), expected);
+    }
+  }
+  for (const reason of [undefined, null, ''])
+    assert.doesNotThrow(() => decodeGemini(lines([init, user, { ...result, result: { ...result.result, finished_reason: reason } }]), model));
+});
+
+test('timeout classification reads structured terminal metadata rather than response text', () => {
+  const terminal = { ...result, result: { ...result.result, finished_reason: 'print_timeout' } };
+  assert.equal(geminiPrintTimedOut({ stderr: '', stdout: lines([init, user, terminal]) }), true);
+  assert.equal(geminiPrintTimedOut({ stderr: '', stdout: lines([init, user, { ...result, result: { ...result.result, response: 'print_timeout' } }]) }), false);
+  for (const stdout of ['not JSON', '{"event":"result","result":', 'null', '[]']) assert.equal(geminiPrintTimedOut({ stderr: '', stdout }), false);
+});
+
+test('live stream guard preserves non-fallback failure classes for native early termination', async () => {
+  for (const [reason, expected] of [
+    ['print_timeout', 'timeout'],
+    ['interrupted', 'cancelled'],
+    ['error', 'model-or-provider'],
+  ]) {
+    const stdout = lines([init, user, { ...result, result: { ...result.result, finished_reason: reason } }]) + '\n';
+    const observed = await execute(process.execPath, ['-e', 'process.stdout.write(' + JSON.stringify(stdout) + ')'], {
+      timeoutMs: 5000,
+      onStdoutLine: line => guardGeminiEvent(JSON.parse(line), model),
+    });
+    assert.equal(classifyFailure(workerFailure(observed, 'gemini')), expected);
+    assert.equal(observed.stderr, '');
+    assert.equal(geminiPrintTimedOut(observed), reason === 'print_timeout');
   }
 });

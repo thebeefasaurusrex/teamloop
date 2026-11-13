@@ -15,7 +15,19 @@ export const designerAgent =
   geminiCompletionInstructions +
   ' Return only the requested JSON containing the complete artifact. Missing evidence must be explicit.\n';
 /** The CLI can exit zero with SUCCESS while returning only a deadline-truncated response. */
-export const geminiPrintTimedOut = result => /\[agy\]\s+print timeout[^\r\n]*\bturn in progress\b[^\r\n]*\bpartial output\b/i.test(result.stderr ?? '');
+export const geminiPrintTimedOut = result => {
+  if (/\[agy\]\s+print timeout[^\r\n]*\bturn in progress\b[^\r\n]*\bpartial output\b/i.test(result.stderr ?? '')) return true;
+  return String(result.stdout ?? '')
+    .split(/\r?\n/)
+    .some(line => {
+      try {
+        const event = JSON.parse(line);
+        return event?.event === 'result' && event.result?.finished_reason === 'print_timeout';
+      } catch {
+        return false;
+      }
+    });
+};
 export function resolveUserHome(config, env = process.env) {
   const userHome = path.resolve(env.USERPROFILE || os.homedir());
   const configured = path.resolve(config.antigravityHome);
@@ -129,6 +141,11 @@ export async function geminiIdentity(config, env, execute) {
 /** Reject tool attempts and unexpected protocol events; deny rules remain the preventive control. */
 export function guardGeminiEvent(event, model, agent = 'team-loop-reviewer') {
   if (!['init', 'step_update', 'result'].includes(event.event)) throw Error('Unexpected Antigravity event');
+  if (event.event === 'result' && event.result?.finished_reason !== undefined && event.result.finished_reason !== null && event.result.finished_reason !== '') {
+    if (event.result.finished_reason === 'print_timeout') throw Error('timeout');
+    if (event.result.finished_reason === 'interrupted') throw Error('cancelled');
+    throw Error('Antigravity model/provider ended before completion');
+  }
   if (event.event === 'init' && (event.init?.permission_mode !== 'strict' || event.init?.model !== model || event.init?.agent !== agent))
     throw Error('Unexpected Antigravity runtime configuration');
   if (event.event === 'step_update') {
