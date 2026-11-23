@@ -56,11 +56,13 @@ Lead scopes the task → Router proposes reviewers → Runner dispatches hashed 
 → Worker returns a structured review → Lead verifies findings and decides what to change
 ```
 
-Typed [execution plans](skills/team-loop/references/operations.md#execution-plans) add dependencies, required or advisory stages, and bounded concurrency. The [operating reference](skills/team-loop/references/operations.md) also covers packet size limits, evidence slices, run receipts, and the temporary Claude Bridge. Preview adapters support Codex CLI, Claude Code CLI, Gemini through Antigravity CLI, and NVIDIA's API.
+Typed [execution plans](skills/team-loop/references/operations.md#execution-plans) add dependencies, required or advisory stages, and bounded concurrency. The [operating reference](skills/team-loop/references/operations.md) also covers packet size limits, evidence slices, run receipts, and the temporary Claude Bridge. Preview adapters support Codex CLI, Claude Code CLI, Gemini through Antigravity CLI, NVIDIA's API, and DeepSeek Flash through its Responses API.
 
 ## Guardrails and limits
 
 Every review starts with explicitly selected evidence, restricted provider invocations, and time and output limits. The 16-file, 1 MiB-per-file, and 2 MiB-packet caps bound evidence ingestion and disclosure. Use required evidence ranges to keep a larger review focused. The router limits each recommendation to three reviewers so each review can be adjudicated. A typed plan allows up to three concurrent stages, with one active run per provider, to bound simultaneous model calls.
+
+DeepSeek starts disabled. To opt in on the portable runner, set `deepseekEnabled`, `providers.deepseek.enabled` and `allowApiSpend` to `true`. Set `deepseekKeyFile` to a private file outside all task roots, then select `deepseek deepseek-flash high` in the normal review command. Classify the packet `public` or `synthetic`. For each path in `images`, add an `imageProvenance` entry, for example `"imageProvenance": {"images/demo.png": "synthetic"}`. Allowed labels are `public-capture` and `synthetic`. The limit is eight images and 20,649,372 raw bytes total, with the regular per-file packet checks.
 
 Keep local config, packets, and raw receipts private. Review source and images before disclosure. Treat generated HTML as active content and use an isolated browser with network access disabled when you need an offline preview. See [SECURITY.md](SECURITY.md).
 

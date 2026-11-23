@@ -1,8 +1,12 @@
 # Portable toolkit and local operating policy
 
-Updated October 25, 2026. Package version remains `0.2.0-rc.2`. The author's personal operating policy is `1.13.0`, effective October 25, 2026. These version numbers describe different systems.
+Updated November 23, 2026. Package version remains `0.2.0-rc.2`. The author's personal operating policy is `1.15.0`, effective November 23, 2026. These version numbers describe different systems.
 
 The [field notes](https://frontier-model-routing-field-notes.netlify.app/) report the author's local setup, experiments, and decisions. This repository is a selected portable derivative. A model's appearance in those notes does not enable it here or establish compatibility for another account.
+
+## November 23 DeepSeek Flash support
+
+The portable CLI runner adds an opt-in Responses API review adapter for `deepseek-flash`. Text and inline PNG, JPEG, GIF, or WebP images are eligible on explicitly public or synthetic packets. Every image needs a `public-capture` or `synthetic` label in the packet's `imageProvenance` map. The cap is eight images totaling 20,649,372 raw bytes. The adapter omits the detail override, requests `store: false` and supplies no tools. A malformed or schema-invalid reply fails the run. The runner makes one request per dispatch and performs no retry or model substitution. The separate macOS preview's API specialist transport remains text-only.
 
 ## Included in the October 21 synchronization
 
@@ -26,7 +30,7 @@ Compact receipts themselves were already present in the September 24 public base
 | Local capability or decision | Public toolkit boundary |
 | --- | --- |
 | Frozen, classified one-time subscription availability switch | The public runner and execution plans still have no automatic retry or provider substitution. |
-| Current role assignments, including GPT-6.1 Sol Medium lead, GPT-6 Sol exclusion and the DeepSeek engineering specialist | Public routing remains driven by the adopter's explicit roster. No private lineup or new provider adapter was copied. |
+| Current role assignments, including GPT-6.1 Sol Medium lead, GPT-6 Sol exclusion and the DeepSeek engineering specialist | Public routing remains driven by the adopter's explicit roster. The opt-in DeepSeek adapter carries no personal routing or account configuration. |
 | File-backed Opus design versus experimental benchmark Compute | A separate selected `design` command now exposes literal file Read/Write/Edit in an isolated worktree, pinned Opus 5.5 High and 45minutes; disabled by default publicly. The benchmark Compute/MCP transport is not shipped. Reviewers stay completion-only; legacy Bridge remains independently gated. No native continuation fix is claimed. |
 | Experimental Fable creative selection and returned-model identity guards | No Fable-specific dispatch route, activation flag, or compatibility claim was added. |
 | Tool routing and remote deterministic worker placement | No private tool registry, worker address, remote execution integration, or machine configuration is included. |
