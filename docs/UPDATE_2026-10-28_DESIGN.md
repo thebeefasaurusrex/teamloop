@@ -47,4 +47,4 @@ Claude's rounded account-wide session meter moved from 9% to 12%; its weekly met
 
 The practical verdict is that matched host delivery worked for both configurations, while Opus supplied more trustworthy evidence-based decision support here. Argon remains outside default design routing. One practical configuration per contender, one task and AI-assisted scoring do not establish a stable population ranking. Historical grades, current review roles, policy 1.14.0 and 6.1 Sol's final authority remain intact.
 
-This was my personal experiment, not an official Glean benchmark.
+This was my personal experiment, not an official employer benchmark.

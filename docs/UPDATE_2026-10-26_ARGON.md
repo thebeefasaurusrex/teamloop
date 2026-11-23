@@ -50,4 +50,4 @@ Keep 6.1 accountable for scope, integration and verification. Argon supplied use
 
 One attempt per configuration/task and AI-assisted masked judgments do not establish statistical stability, human ratification or model-only superiority. Provider identity was checked through CLI initialization, not independent backend provenance. Target coverage does not certify every recommendation. Latency is an observation; lead labor, per-model subscription quota and cash savings were not measured. Provider-reported reasoning/cached counts are subsets where labeled, and worker exports exclude supervision and grading overhead. No historical score was rewritten.
 
-This was my personal experiment, not an official Glean benchmark.
+This was my personal experiment, not an official employer benchmark.

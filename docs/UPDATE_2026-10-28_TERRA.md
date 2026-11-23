@@ -40,4 +40,4 @@ The current roster and dated change record now distinguish the accepted Terra 6.
 
 Unfinished Argon/Opus design work is outside this release and supplies no result or promotion claim here.
 
-This was my personal experiment, not an official Glean benchmark.
+This was my personal experiment, not an official employer benchmark.
