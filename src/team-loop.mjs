@@ -8,6 +8,7 @@ import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { geminiIdentity, geminiInvocation, decodeGemini, geminiCompletionInstructions, geminiPrintTimedOut } from './antigravity.mjs';
 import { nvidiaIdentity } from './nvidia-nim.mjs';
+import { assertDeepSeekImages, deepseekIdentity } from './deepseek-responses.mjs';
 import { selectEvidence, assertEvidence } from './evidence-manifest.mjs';
 import { loadConfig, resolveModel } from './config.mjs';
 import { activateExecutionMode, formatExecutionMode, resolveExecutionMode, selectStandardMode } from './execution-mode.mjs';
@@ -114,6 +115,15 @@ export async function prepare(spec, config) {
   assertEvidence(initialEvidence.report);
   const imagePaths = spec.images ?? [];
   if (!Array.isArray(imagePaths) || imagePaths.length > 8 || new Set(imagePaths).size !== imagePaths.length) throw Error('Specify 0-8 distinct images');
+  const imageProvenance = spec.imageProvenance;
+  if (
+    imageProvenance !== undefined &&
+    (!imageProvenance ||
+      typeof imageProvenance !== 'object' ||
+      Array.isArray(imageProvenance) ||
+      Object.entries(imageProvenance).some(([file, label]) => !imagePaths.includes(file) || !['public-capture', 'synthetic'].includes(label)))
+  )
+    throw Error('imageProvenance must map selected image paths to public-capture or synthetic');
   let root = initialEvidence.root;
   const images = await Promise.all(imagePaths.map(p => readImage(root, p)));
   if (images.reduce((sum, image) => sum + image.sizeBytes, 0) > 41943040) throw Error('Images exceed the 40 MiB packet limit');
@@ -139,6 +149,7 @@ export async function prepare(spec, config) {
     decisions: spec.decisions,
     sources,
     images,
+    ...(images.length && imageProvenance !== undefined ? { imageProvenance } : {}),
     ...(manifest ? { evidenceManifest: manifest } : {}),
   };
   scanStrings(payload, config.blockedLiterals);
@@ -244,6 +255,7 @@ export function workerFailure(result, provider) {
 
 export function assertImageTransport(provider, packet) {
   const images = packet.payload.images ?? [];
+  if (provider === 'deepseek') return assertDeepSeekImages(images, packet.payload.imageProvenance);
   if (images.length && !['claude', 'nvidia'].includes(provider)) throw Error('This provider transport has no verified native image attachment support');
   const imageBytes = images.reduce((sum, image) => sum + image.sizeBytes, 0);
   if (provider === 'nvidia' && imageBytes > 2097152)
@@ -402,6 +414,24 @@ export function decode(provider, output, packetHash, model, kind = 'review', max
       completionSource,
     };
   }
+  if (provider === 'deepseek') {
+    const envelope = JSON.parse(output);
+    if (envelope.status !== 'completed' || envelope.model !== model) throw Error('DeepSeek response lacks completed status or the requested model identity');
+    if (typeof envelope.response !== 'string') throw Error('DeepSeek response must contain a JSON string');
+    let review;
+    try {
+      review = JSON.parse(envelope.response);
+    } catch {
+      throw Error('DeepSeek review must be a single JSON object');
+    }
+    return {
+      review: validateOutput(kind, review, packetHash, maxArtifactBytes),
+      usage: envelope.usage ?? null,
+      actualModel: envelope.model,
+      completionSource: 'stream-terminal',
+      providerMeta: { responseId: envelope.responseId ?? null },
+    };
+  }
   if (provider === 'nvidia') {
     const envelope = JSON.parse(output);
     return {
@@ -473,6 +503,7 @@ async function identity(provider, config, env) {
   }
   if (provider === 'gemini') return geminiIdentity(config, env, execute);
   if (provider === 'nvidia') return nvidiaIdentity(config);
+  if (provider === 'deepseek') return deepseekIdentity(config);
   const auth = await readJson(path.join(config.codexHome, 'auth.json'));
   if (auth.auth_mode !== 'chatgpt' || auth.OPENAI_API_KEY) throw Error('Codex ChatGPT subscription login required');
   const claims = JSON.parse(Buffer.from(auth.tokens.id_token.split('.')[1], 'base64url').toString());
@@ -560,6 +591,15 @@ async function invocation(provider, model, config, runDir, prompt, env, kind, ti
   }
   if (provider === 'gemini')
     return geminiInvocation(config, runDir, model, prompt, env, kind === 'artifact' ? 'team-loop-designer' : 'team-loop-reviewer', timeoutMs, schema, effort);
+  if (provider === 'deepseek') {
+    const images = await loadImages(packet);
+    return {
+      command: process.execPath,
+      args: [fileURLToPath(new URL('./deepseek-responses.mjs', import.meta.url)), config.deepseekKeyFile, model, String(timeoutMs), effort],
+      env,
+      input: JSON.stringify({ prompt, schema, images }),
+    };
+  }
   if (provider === 'nvidia') {
     const images = await loadImages(packet);
     return {
@@ -636,6 +676,9 @@ export async function run(packetFile, provider, model, config, effort = 'default
   scanStrings(packet.payload, config.blockedLiterals);
   if (provider === 'nvidia' && !['public', 'synthetic'].includes(packet.payload.dataClass))
     throw Error('NVIDIA trial accepts only explicitly public or synthetic packets');
+  if (provider === 'deepseek' && !['public', 'synthetic'].includes(packet.payload.dataClass))
+    throw Error('DeepSeek accepts only explicitly public or synthetic packets');
+  if (provider === 'deepseek' && packet.payload.kind !== 'review') throw Error('DeepSeek only supports review packets');
   if (packet.payload.images.length && !profile.imageInput) throw Error('Configured model does not allow image input');
   assertImageTransport(provider, packet);
   const timeoutMs = packet.payload.timeoutMs;
