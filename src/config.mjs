@@ -1,9 +1,10 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { deepSeekModel } from './deepseek-responses.mjs';
 
-const providerIds = new Set(['mock', 'codex', 'claude', 'gemini', 'nvidia']);
+const providerIds = new Set(['mock', 'codex', 'claude', 'gemini', 'nvidia', 'deepseek']);
 const accountProviders = ['codex', 'claude', 'gemini'];
-const paths = ['stateRoot', 'codexHome', 'antigravityHome', 'nvidiaKeyFile'];
+const paths = ['stateRoot', 'codexHome', 'antigravityHome', 'nvidiaKeyFile', 'deepseekKeyFile'];
 const commands = ['codex', 'claude', 'antigravity', 'git'];
 
 /** Load only an explicitly selected configuration. Relative paths use its directory. */
@@ -62,7 +63,12 @@ export function validateConfig(config) {
         settings.allowedAccounts.some(email => typeof email !== 'string' || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)))
     )
       throw Error('Enabled subscription provider requires allowedAccounts');
-    if (provider === 'nvidia' && config.allowApiSpend !== true) throw Error('API transport requires explicit allowApiSpend; it is not a subscription fallback');
+    if (provider === 'deepseek') {
+      if (config.deepseekEnabled !== true) throw Error('DeepSeek requires explicit deepseekEnabled');
+      if (Object.keys(settings.models).some(model => model !== deepSeekModel)) throw Error('Unsupported DeepSeek model');
+    }
+    if (['nvidia', 'deepseek'].includes(provider) && config.allowApiSpend !== true)
+      throw Error('API transport requires explicit allowApiSpend; it is not a subscription fallback');
   }
   return config;
 }

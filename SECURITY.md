@@ -16,6 +16,10 @@ TeamLoop is a local orchestration tool, not a universal sandbox or a privacy fir
 - Screens every allowlisted text file for credential shapes, personal OS paths and email addresses other than documentation placeholders before publication.
 - Keeps every denied path, secret pattern, redaction rule, environment filter and process guard in one shared module so the reviewer runner, plan runner and Claude Bridge builder cannot drift apart.
 
+## DeepSeek data handling
+
+Opt-in DeepSeek reviews send selected text and images to DeepSeek's API. Its [privacy policy](https://cdn.deepseek.com/policies/en-US/deepseek-privacy-policy.html) covers prompts and uploads, including photos. They may be stored in the People's Republic of China and may be used for training. The runner sends `store: false` and requires explicitly public or synthetic packets and a source label for every image. The lead must verify the labels and visually inspect each attachment before disclosure.
+
 ## What it does not promise
 
 Pattern matching cannot reliably detect every secret or proprietary fact. It cannot assess privacy in screenshots. Output redaction is best effort. Raw worker logs remain private even after redaction. Do not commit or upload the state directory.
